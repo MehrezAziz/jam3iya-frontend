@@ -13,18 +13,29 @@ import { Select } from '@/components/ui/select';
 import { DateInput } from '@/components/ui/date-input';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { getBeneficiaryFull, updateBeneficiary } from '@/lib/api/beneficiaries';
-
-const EDIT_REASON = 'Change beneficiary informations';
+import { getBeneficiaryAccessStatus, verifyBeneficiaryAccessPin } from '@/lib/api/tenancy';
+import { PinInput } from '@/components/pin-input';
 
 export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations();
   const router = useRouter();
   const [form, setForm] = useState<Record<string, string>>({});
+  const [pin, setPin] = useState('');
+
+  const accessQ = useQuery({
+    queryKey: ['beneficiary-access'],
+    queryFn: () => getBeneficiaryAccessStatus(),
+  });
+
+  const canLoad =
+    accessQ.data &&
+    (!accessQ.data.pinConfigured || accessQ.data.accessGranted);
 
   const q = useQuery({
-    queryKey: ['beneficiary-full', id, EDIT_REASON],
-    queryFn: () => getBeneficiaryFull(id, EDIT_REASON),
+    queryKey: ['beneficiary-full', id],
+    queryFn: () => getBeneficiaryFull(id),
+    enabled: !!canLoad,
   });
 
   const save = useMutation({
@@ -85,11 +96,38 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  if (q.isLoading) {
+  async function unlockWithPin() {
+    if (pin.length !== 4) {
+      toast.error(t('beneficiaries.pinInvalid'));
+      return;
+    }
+    try {
+      await verifyBeneficiaryAccessPin(pin);
+      await accessQ.refetch();
+      setPin('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  if (accessQ.isLoading || (canLoad && q.isLoading)) {
     return (
       <div className="flex items-center gap-2 p-8 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         {t('common.loading')}
+      </div>
+    );
+  }
+
+  if (accessQ.data?.pinConfigured && !accessQ.data.accessGranted) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 p-8">
+        <h1 className="text-xl font-bold">{t('beneficiaries.editProfile')}</h1>
+        <p className="text-sm text-muted-foreground">{t('beneficiaries.enterPin')}</p>
+        <PinInput value={pin} onChange={setPin} />
+        <Button onClick={unlockWithPin} disabled={pin.length !== 4}>
+          {t('beneficiaries.unlockButton')}
+        </Button>
       </div>
     );
   }

@@ -23,6 +23,25 @@ export function listBills(params?: { limit?: number; offset?: number }) {
   return api<{ total: number; items: BillItem[] }>(`/bills${qs ? `?${qs}` : ''}`);
 }
 
+export interface BillPrintDonation {
+  id: string;
+  kind: string;
+  isAnonymous: boolean;
+  spendCategory: string | null;
+  receivedAt: string;
+  donorNameSnapshot: string | null;
+  campaignName: string | null;
+}
+
+export function getBill(id: string): Promise<
+  BillItem & {
+    organization: { legalName: string; fiscalId: string | null; address: string | null; phone: string | null };
+    linkedDonation: BillPrintDonation | null;
+  }
+> {
+  return api(`/bills/${id}`);
+}
+
 export function issueDonationReceipt(input: {
   donationId: string;
   recipientName: string;

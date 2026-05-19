@@ -11,8 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { listDonations, type DonationItem } from '@/lib/api/donations';
+import { issueDonationReceipt } from '@/lib/api/bills';
+import { Printer } from 'lucide-react';
+import { toast } from 'sonner';
+import { useMutation } from '@tanstack/react-query';
 import { listCampaigns } from '@/lib/api/campaigns';
 import { formatTndMinor, formatGregorianAndHijri } from '@/lib/utils';
+import { CopyableId } from '@/components/copyable-id';
 import { useLocale } from 'next-intl';
 
 const DONATION_CATEGORIES = [
@@ -65,9 +70,14 @@ export default function DonationsPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{t('donations.title')}</h1>
-        <Button asChild>
-          <Link href="/donations/new-cash">{t('donations.newCash')}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/donations/add-donor">{t('donations.addDonator')}</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/donations/new-cash">{t('donations.newCash')}</Link>
+          </Button>
+        </div>
       </header>
 
       <Card>
@@ -143,6 +153,7 @@ export default function DonationsPage() {
                 <li key={d.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
+                      <CopyableId id={d.id} label={t('donations.donationId')} />
                       <div className="font-medium">
                         {d.isAnonymous ? t('donations.anonymous') : d.donorNameSnapshot ?? d.donorId ?? '—'}
                       </div>
@@ -162,7 +173,10 @@ export default function DonationsPage() {
                         </p>
                       ) : null}
                     </div>
-                    <div className="font-semibold tabular-nums">{formatTndMinor(d.amountMinor)}</div>
+                    <div className="flex flex-col items-end gap-2">
+                      {d.kind === 'cash' ? <DonationPrintButton donation={d} t={t} /> : null}
+                      <span className="font-semibold tabular-nums">{formatTndMinor(d.amountMinor)}</span>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -171,5 +185,52 @@ export default function DonationsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function DonationPrintButton({
+  donation,
+  t,
+}: {
+  donation: DonationItem;
+  t: (k: string) => string;
+}) {
+  const issueMut = useMutation({
+    mutationFn: async () => {
+      if (donation.receiptBill) return donation.receiptBill;
+      const name = donation.isAnonymous
+        ? t('donations.anonymous')
+        : donation.donorNameSnapshot ?? t('donations.unknownDonor');
+      const res = await issueDonationReceipt({
+        donationId: donation.id,
+        recipientName: name,
+        isTaxReceipt: true,
+      });
+      return { id: res.id, number: res.number, series: 'RECEIPT', yearIssued: new Date().getFullYear() };
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  async function handlePrint() {
+    try {
+      const bill = await issueMut.mutateAsync();
+      window.open(`/bills/print?id=${bill.id}`, '_blank', 'noopener');
+    } catch {
+      /* handled */
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="h-8 w-8"
+      onClick={handlePrint}
+      disabled={issueMut.isPending}
+      title={t('donations.printReceipt')}
+    >
+      <Printer className="h-4 w-4" />
+    </Button>
   );
 }

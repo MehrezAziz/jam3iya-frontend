@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { MoneyInput } from '@/components/ui/money-input';
 import { DateInput } from '@/components/ui/date-input';
 import { createCashDonation } from '@/lib/api/donations';
+import { searchDonors, type DonorSearchHit } from '@/lib/api/donors';
 import { listCampaigns, type CampaignListEntry } from '@/lib/api/campaigns';
 import { tndToMinor, DEFAULT_CURRENCY } from '@/lib/money';
 
@@ -39,6 +40,8 @@ const schema = z
       .string()
       .min(1, 'Amount required')
       .refine((s) => Number(s) > 0, 'Amount must be > 0'),
+    donorMode: z.enum(['registered', 'guest']),
+    donorId: z.string().uuid().optional().or(z.literal('')),
     donorNameSnapshot: z.string().max(200).optional(),
     donorFiscalIdSnapshot: z.string().max(80).optional(),
     isAnonymous: z.boolean().optional(),
@@ -61,7 +64,18 @@ const schema = z
   .refine((v) => v.spendMode !== 'campaign' || (v.campaignId && v.campaignId.length > 0), {
     message: 'Pick a campaign',
     path: ['campaignId'],
-  });
+  })
+  .refine((v) => v.donorMode !== 'registered' || (v.donorId && v.donorId.length > 0), {
+    message: 'Select a donor account',
+    path: ['donorId'],
+  })
+  .refine(
+    (v) =>
+      v.donorMode !== 'guest' ||
+      v.isAnonymous ||
+      (v.donorNameSnapshot && v.donorNameSnapshot.trim().length >= 2),
+    { message: 'Enter donor name or mark as anonymous', path: ['donorNameSnapshot'] },
+  );
 
 type FormData = z.infer<typeof schema>;
 
@@ -69,6 +83,14 @@ export default function NewCashDonationPage() {
   const t = useTranslations();
   const router = useRouter();
   const [customCategory, setCustomCategory] = useState(false);
+  const [donorSearch, setDonorSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedDonor, setSelectedDonor] = useState<DonorSearchHit | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(donorSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [donorSearch]);
 
   const { data: campaigns } = useQuery<CampaignListEntry[]>({
     queryKey: ['campaigns', 'active'],
@@ -78,6 +100,8 @@ export default function NewCashDonationPage() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      donorMode: 'guest',
+      donorId: '',
       isAnonymous: false,
       spendMode: 'unrestricted',
       spendCategory: '',
@@ -88,6 +112,14 @@ export default function NewCashDonationPage() {
   });
 
   const spendMode = form.watch('spendMode');
+  const donorMode = form.watch('donorMode');
+  const isAnonymous = form.watch('isAnonymous');
+
+  const donorsQ = useQuery({
+    queryKey: ['donors-search', debouncedSearch],
+    queryFn: () => searchDonors(debouncedSearch),
+    enabled: donorMode === 'registered' && debouncedSearch.length >= 2,
+  });
 
   useEffect(() => {
     if (spendMode !== 'category') form.setValue('spendCategory', '');
@@ -99,9 +131,18 @@ export default function NewCashDonationPage() {
       await createCashDonation({
         amount: tndToMinor(Number(values.amount)),
         currency: DEFAULT_CURRENCY,
-        donorNameSnapshot: values.donorNameSnapshot || undefined,
-        donorFiscalIdSnapshot: values.donorFiscalIdSnapshot || undefined,
-        isAnonymous: values.isAnonymous,
+        donorId: values.donorMode === 'registered' && values.donorId ? values.donorId : undefined,
+        donorNameSnapshot:
+          values.donorMode === 'guest' && !values.isAnonymous
+            ? values.donorNameSnapshot?.trim()
+            : values.donorMode === 'registered' && selectedDonor
+              ? selectedDonor.fullName
+              : undefined,
+        donorFiscalIdSnapshot:
+          values.donorMode === 'guest'
+            ? values.donorFiscalIdSnapshot || undefined
+            : selectedDonor?.fiscalId ?? undefined,
+        isAnonymous: values.donorMode === 'guest' ? values.isAnonymous : false,
         notes: values.notes || undefined,
         receivedAt: values.receivedAt,
         spendCategory:
@@ -147,6 +188,99 @@ export default function NewCashDonationPage() {
               </div>
             </div>
 
+            <div>
+              <Label>{t('donations.donor')}</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(['registered', 'guest'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      form.setValue('donorMode', mode);
+                      setSelectedDonor(null);
+                      form.setValue('donorId', '');
+                      if (mode === 'registered') form.setValue('isAnonymous', false);
+                    }}
+                    className={`rounded-md border px-3 py-1.5 text-sm ${
+                      donorMode === mode ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    {t(`donations.donorMode${mode === 'registered' ? 'Registered' : 'Guest'}`)}
+                  </button>
+                ))}
+              </div>
+              {donorMode === 'registered' ? (
+                <div className="mt-3 space-y-2">
+                  <Input
+                    placeholder={t('donations.searchDonorHint')}
+                    value={donorSearch}
+                    onChange={(e) => setDonorSearch(e.target.value)}
+                  />
+                  {selectedDonor ? (
+                    <p className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                      {selectedDonor.fullName}
+                      {selectedDonor.phone ? ` · ${selectedDonor.phone}` : ''}
+                    </p>
+                  ) : null}
+                  {debouncedSearch.length >= 2 && !selectedDonor ? (
+                    <ul className="max-h-40 overflow-y-auto rounded-md border">
+                      {(donorsQ.data ?? []).length === 0 && !donorsQ.isLoading ? (
+                        <li className="px-3 py-2 text-sm text-muted-foreground">{t('donations.noDonorFound')}</li>
+                      ) : null}
+                      {(donorsQ.data ?? []).map((hit) => (
+                        <li key={hit.id}>
+                          <button
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                            onClick={() => {
+                              setSelectedDonor(hit);
+                              form.setValue('donorId', hit.id, { shouldValidate: true });
+                            }}
+                          >
+                            <span className="font-medium">{hit.fullName}</span>
+                            {hit.phone ? (
+                              <span className="text-muted-foreground"> · {hit.phone}</span>
+                            ) : null}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {form.formState.errors.donorId ? (
+                    <p className="text-xs text-destructive">{form.formState.errors.donorId.message}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="donorNameSnapshot">{t('donations.donorName')}</Label>
+                    <Input
+                      id="donorNameSnapshot"
+                      disabled={isAnonymous}
+                      {...form.register('donorNameSnapshot')}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="donorFiscalIdSnapshot">{t('donations.donorFiscalId')}</Label>
+                    <Input
+                      id="donorFiscalIdSnapshot"
+                      disabled={isAnonymous}
+                      {...form.register('donorFiscalIdSnapshot')}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <input id="isAnonymous" type="checkbox" {...form.register('isAnonymous')} />
+                    <Label htmlFor="isAnonymous">{t('donations.anonymous')}</Label>
+                  </div>
+                  {form.formState.errors.donorNameSnapshot ? (
+                    <p className="text-xs text-destructive sm:col-span-2">
+                      {form.formState.errors.donorNameSnapshot.message}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="receivedAt">{t('donations.receivedAt')}</Label>
@@ -159,18 +293,6 @@ export default function NewCashDonationPage() {
                 {form.formState.errors.receivedAt && (
                   <p className="mt-1 text-xs text-destructive">{form.formState.errors.receivedAt.message}</p>
                 )}
-              </div>
-              <div>
-                <Label htmlFor="donorNameSnapshot">{t('donations.donorName')}</Label>
-                <Input id="donorNameSnapshot" {...form.register('donorNameSnapshot')} />
-              </div>
-              <div>
-                <Label htmlFor="donorFiscalIdSnapshot">{t('donations.donorFiscalId')}</Label>
-                <Input id="donorFiscalIdSnapshot" {...form.register('donorFiscalIdSnapshot')} />
-              </div>
-              <div className="flex items-center gap-2 pt-7">
-                <input id="isAnonymous" type="checkbox" {...form.register('isAnonymous')} />
-                <Label htmlFor="isAnonymous">{t('donations.anonymous')}</Label>
               </div>
             </div>
 

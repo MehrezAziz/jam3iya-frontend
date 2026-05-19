@@ -39,6 +39,14 @@ export async function login(input: {
   return api('/auth/login', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export async function departmentLogin(input: {
+  organizationSlug: string;
+  loginCode: string;
+  password: string;
+}): Promise<{ user: SessionUser }> {
+  return api('/auth/login/department', { method: 'POST', body: JSON.stringify(input) });
+}
+
 export async function registerDonor(input: {
   organizationSlug: string;
   email: string;

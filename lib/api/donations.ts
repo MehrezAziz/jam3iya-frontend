@@ -14,6 +14,12 @@ export interface DonationItem {
   isAnonymous: boolean;
   donorNameSnapshot: string | null;
   notes: string | null;
+  receiptBill: {
+    id: string;
+    number: string;
+    series: string;
+    yearIssued: number;
+  } | null;
 }
 
 export interface ListDonationsParams {

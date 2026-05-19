@@ -12,27 +12,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { login } from '@/lib/api/auth';
+import { departmentLogin, login } from '@/lib/api/auth';
 
-const schema = z.object({
+const staffSchema = z.object({
   organizationSlug: z.string().min(1).max(80),
   email: z.string().email(),
   password: z.string().min(8),
   twoFactorCode: z.string().regex(/^\d{6}$/).optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+const deptSchema = z.object({
+  organizationSlug: z.string().min(1).max(80),
+  loginCode: z.string().min(2).max(40),
+  password: z.string().min(8),
+});
+
+type StaffForm = z.infer<typeof staffSchema>;
+type DeptForm = z.infer<typeof deptSchema>;
 
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
+  const [mode, setMode] = useState<'staff' | 'department'>('staff');
   const [needs2fa, setNeeds2fa] = useState(false);
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema),
+  const staffForm = useForm<StaffForm>({
+    resolver: zodResolver(staffSchema),
     defaultValues: { organizationSlug: 'demo', email: '', password: '' },
   });
+  const deptForm = useForm<DeptForm>({
+    resolver: zodResolver(deptSchema),
+    defaultValues: { organizationSlug: 'demo', loginCode: '', password: '' },
+  });
 
-  async function onSubmit(values: FormData) {
+  async function onStaffSubmit(values: StaffForm) {
     try {
       const result = await login(values);
       if ('needsTwoFactor' in result) {
@@ -47,6 +59,15 @@ export default function LoginPage() {
     }
   }
 
+  async function onDeptSubmit(values: DeptForm) {
+    try {
+      await departmentLogin(values);
+      router.push('/dashboard');
+    } catch (err) {
+      toast.error((err as Error).message || t('auth.loginError'));
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="text-center">
@@ -54,42 +75,75 @@ export default function LoginPage() {
         <CardDescription>{t('auth.loginSubtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="organizationSlug">{t('auth.organizationSlug')}</Label>
-            <Input id="organizationSlug" autoComplete="organization" {...form.register('organizationSlug')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">{t('auth.email')}</Label>
-            <Input id="email" type="email" autoComplete="email" {...form.register('email')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">{t('auth.password')}</Label>
-            <Input id="password" type="password" autoComplete="current-password" {...form.register('password')} />
-          </div>
-          {needs2fa && (
-            <div className="space-y-1.5">
-              <Label htmlFor="twoFactorCode">{t('auth.twoFactorCode')}</Label>
-              <Input
-                id="twoFactorCode"
-                inputMode="numeric"
-                maxLength={6}
-                autoComplete="one-time-code"
-                {...form.register('twoFactorCode')}
-              />
-              <p className="text-xs text-muted-foreground">{t('auth.twoFactorPrompt')}</p>
-            </div>
-          )}
-          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? t('common.loading') : t('auth.login')}
+        <div className="mb-4 flex gap-2">
+          <Button type="button" size="sm" variant={mode === 'staff' ? 'default' : 'outline'} onClick={() => setMode('staff')}>
+            {t('auth.staffLogin')}
           </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            {t('auth.noAccountYet')}{' '}
-            <Link className="text-primary underline" href="/register-donor">
-              {t('auth.registerDonor')}
-            </Link>
-          </p>
-        </form>
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === 'department' ? 'default' : 'outline'}
+            onClick={() => setMode('department')}
+          >
+            {t('auth.departmentLogin')}
+          </Button>
+        </div>
+        {mode === 'staff' ? (
+          <form onSubmit={staffForm.handleSubmit(onStaffSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="organizationSlug">{t('auth.organizationSlug')}</Label>
+              <Input id="organizationSlug" autoComplete="organization" {...staffForm.register('organizationSlug')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">{t('auth.email')}</Label>
+              <Input id="email" type="email" autoComplete="email" {...staffForm.register('email')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">{t('auth.password')}</Label>
+              <Input id="password" type="password" autoComplete="current-password" {...staffForm.register('password')} />
+            </div>
+            {needs2fa && (
+              <div className="space-y-1.5">
+                <Label htmlFor="twoFactorCode">{t('auth.twoFactorCode')}</Label>
+                <Input
+                  id="twoFactorCode"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                  {...staffForm.register('twoFactorCode')}
+                />
+                <p className="text-xs text-muted-foreground">{t('auth.twoFactorPrompt')}</p>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={staffForm.formState.isSubmitting}>
+              {staffForm.formState.isSubmitting ? t('common.loading') : t('auth.login')}
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              {t('auth.noAccountYet')}{' '}
+              <Link className="text-primary underline" href="/register-donor">
+                {t('auth.registerDonor')}
+              </Link>
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={deptForm.handleSubmit(onDeptSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="dept-org">{t('auth.organizationSlug')}</Label>
+              <Input id="dept-org" autoComplete="organization" {...deptForm.register('organizationSlug')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="loginCode">{t('auth.departmentCode')}</Label>
+              <Input id="loginCode" autoComplete="username" {...deptForm.register('loginCode')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dept-password">{t('auth.password')}</Label>
+              <Input id="dept-password" type="password" autoComplete="current-password" {...deptForm.register('password')} />
+            </div>
+            <Button type="submit" className="w-full" disabled={deptForm.formState.isSubmitting}>
+              {deptForm.formState.isSubmitting ? t('common.loading') : t('auth.departmentLogin')}
+            </Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   );

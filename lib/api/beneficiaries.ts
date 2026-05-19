@@ -58,9 +58,8 @@ export function getBeneficiarySummary(id: string) {
   return api(`/beneficiaries/${id}/summary`);
 }
 
-export function getBeneficiaryFull(id: string, reason: string) {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${id}/full?${qs}`);
+export function getBeneficiaryFull(id: string) {
+  return api(`/beneficiaries/${id}/full`);
 }
 
 export function updateBeneficiary(
@@ -101,9 +100,8 @@ export interface BenSpouse {
   notes: string | null;
 }
 
-export function getSpouse(beneficiaryId: string, reason: string): Promise<BenSpouse | null> {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${beneficiaryId}/spouse?${qs}`);
+export function getSpouse(beneficiaryId: string): Promise<BenSpouse | null> {
+  return api(`/beneficiaries/${beneficiaryId}/spouse`);
 }
 
 export function upsertSpouse(beneficiaryId: string, input: {
@@ -143,9 +141,8 @@ export interface BenChild {
   notes: string | null;
 }
 
-export function listChildren(beneficiaryId: string, reason: string): Promise<BenChild[]> {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${beneficiaryId}/children?${qs}`);
+export function listChildren(beneficiaryId: string): Promise<BenChild[]> {
+  return api(`/beneficiaries/${beneficiaryId}/children`);
 }
 
 export function addChild(beneficiaryId: string, input: {
@@ -188,9 +185,8 @@ export interface BenJob {
   notes: string | null;
 }
 
-export function listJobs(beneficiaryId: string, reason: string): Promise<BenJob[]> {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${beneficiaryId}/jobs?${qs}`);
+export function listJobs(beneficiaryId: string): Promise<BenJob[]> {
+  return api(`/beneficiaries/${beneficiaryId}/jobs`);
 }
 
 export function addJob(beneficiaryId: string, input: {
@@ -233,9 +229,8 @@ export interface BenHousing {
   notes: string | null;
 }
 
-export function listHousing(beneficiaryId: string, reason: string): Promise<BenHousing[]> {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${beneficiaryId}/housing?${qs}`);
+export function listHousing(beneficiaryId: string): Promise<BenHousing[]> {
+  return api(`/beneficiaries/${beneficiaryId}/housing`);
 }
 
 export function addHousing(beneficiaryId: string, input: {
@@ -263,8 +258,52 @@ export function deleteHousing(beneficiaryId: string, housingId: string) {
 }
 
 // ---- Diseases --------------------------------------------------------------
+export interface BenDependent {
+  id: string;
+  relationType: 'mother' | 'father' | 'orphan' | 'sibling' | 'grandparent' | 'uncle_aunt' | 'other';
+  relationOther: string | null;
+  firstName: string;
+  lastName: string;
+  gender: 'male' | 'female';
+  dateOfBirth: string | null;
+  cin: string | null;
+  phone: string | null;
+  notes: string | null;
+}
+
+export function listDependents(beneficiaryId: string): Promise<BenDependent[]> {
+  return api(`/beneficiaries/${beneficiaryId}/dependents`);
+}
+
+export function addDependent(
+  beneficiaryId: string,
+  input: {
+    relationType: BenDependent['relationType'];
+    relationOther?: string;
+    firstName: string;
+    lastName: string;
+    gender: 'male' | 'female';
+    dateOfBirth?: string;
+    cin?: string;
+    phone?: string;
+    notes?: string;
+  },
+) {
+  return api(`/beneficiaries/${beneficiaryId}/dependents`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteDependent(beneficiaryId: string, dependentId: string) {
+  return api(`/beneficiaries/${beneficiaryId}/dependents/${dependentId}`, { method: 'DELETE' });
+}
+
 export interface BenDisease {
   id: string;
+  subjectType: 'beneficiary' | 'spouse' | 'child' | 'dependent';
+  childId: string | null;
+  dependentPersonId: string | null;
   name: string | null;
   nameFree: string | null;
   diagnosisDate: string | null;
@@ -276,12 +315,14 @@ export interface BenDisease {
   notes: string | null;
 }
 
-export function listDiseases(beneficiaryId: string, reason: string): Promise<BenDisease[]> {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api(`/beneficiaries/${beneficiaryId}/diseases?${qs}`);
+export function listDiseases(beneficiaryId: string): Promise<BenDisease[]> {
+  return api(`/beneficiaries/${beneficiaryId}/diseases`);
 }
 
 export function addDisease(beneficiaryId: string, input: {
+  subjectType?: BenDisease['subjectType'];
+  childId?: string;
+  dependentPersonId?: string;
   name?: string;
   nameFree?: string;
   diagnosisDate?: string;
@@ -313,9 +354,8 @@ export interface SocialCoverageItem {
   notes: string | null;
 }
 
-export function listSocialCoverages(beneficiaryId: string, reason: string) {
-  const qs = new URLSearchParams({ reason }).toString();
-  return api<SocialCoverageItem[]>(`/beneficiaries/${beneficiaryId}/social-coverages?${qs}`);
+export function listSocialCoverages(beneficiaryId: string) {
+  return api<SocialCoverageItem[]>(`/beneficiaries/${beneficiaryId}/social-coverages`);
 }
 
 export function addSocialCoverage(

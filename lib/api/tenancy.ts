@@ -29,6 +29,48 @@ export function listDepartments(): Promise<Department[]> {
   return api('/departments');
 }
 
+export function getBeneficiaryAccessStatus(): Promise<{
+  pinConfigured: boolean;
+  accessGranted: boolean;
+}> {
+  return api('/organizations/me/beneficiary-access');
+}
+
+export function setBeneficiaryAccessPin(pin: string | null): Promise<{ configured: boolean }> {
+  return api('/organizations/me/beneficiary-access-pin', {
+    method: 'PUT',
+    body: JSON.stringify({ pin }),
+  });
+}
+
+export function changeBeneficiaryAccessPin(input: {
+  newPin: string;
+  oldPin?: string;
+  password?: string;
+}) {
+  return api('/organizations/me/beneficiary-access-pin/change', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
+export function createDepartment(input: {
+  name: string;
+  description?: string;
+  isMain?: boolean;
+  loginCode?: string;
+  password?: string;
+}) {
+  return api('/departments', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function verifyBeneficiaryAccessPin(pin: string): Promise<{ expiresAt: string }> {
+  return api('/organizations/me/beneficiary-access-pin/verify', {
+    method: 'POST',
+    body: JSON.stringify({ pin }),
+  });
+}
+
 export function publicOrg(slug: string): Promise<{
   id: string;
   legalName: string;
