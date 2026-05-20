@@ -139,7 +139,26 @@
     "donationsCharts": "التبرعات عبر الزمن",
     "donationsChartsHint": "المجاميع الشهرية للسنة الجارية",
     "distributionsCharts": "المساعدات النقدية الموزّعة",
-    "distributionsChartsHint": "المساعدات النقدية الشهرية المسلّمة للمستفيدين"
+    "distributionsChartsHint": "المساعدات النقدية الشهرية المسلّمة للمستفيدين",
+    "availableBalance": "الرصيد المتاح",
+    "availableBalanceHint": "التبرعات + التحويلات الواردة − التوزيعات النقدية − التحويلات الصادرة",
+    "departmentScope": "القسم: {name}",
+    "departmentBalances": "الرصيد حسب القسم",
+    "departmentBalancesHint": "كل قسم ينفق من رصيده فقط",
+    "donationsChartsByDept": "التبرعات حسب القسم",
+    "distributionsChartsByDept": "التوزيعات النقدية حسب القسم"
+  },
+  "treasury": {
+    "transfersTitle": "تحويلات بين الأقسام",
+    "transfersHint": "نقل الأموال بين أرصدة الأقسام (القسم الرئيسي فقط)",
+    "fromDepartment": "من القسم",
+    "toDepartment": "إلى القسم",
+    "amount": "المبلغ (د.ت)",
+    "notes": "ملاحظات",
+    "transferSubmit": "تسجيل التحويل",
+    "transferCreated": "تم تسجيل التحويل",
+    "transferInvalid": "أكمل جميع الحقول المطلوبة",
+    "sameDepartment": "اختر قسمين مختلفين"
   },
   "bills": {
     "subtitle": "إصدار إيصالات مرقّمة مرتبطة بالتبرعات",
@@ -483,6 +502,8 @@
     "errBeneficiary": "اختر مستفيدًا.",
     "errLines": "أضف بندًا واحدًا على الأقل.",
     "errCashLine": "يجب أن يكون المبلغ موجبًا.",
+    "errExceedsBalance": "المجموع النقدي يتجاوز الرصيد المتاح ({available}).",
+    "exceedsBalanceHint": "المجموع النقدي أعلى من الرصيد المتاح لقسمك.",
     "errItemLine": "كل بند سلعة يحتاج إلى سلعة وكميّة موجبة."
   },
   "campaigns": {

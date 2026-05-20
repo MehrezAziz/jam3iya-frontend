@@ -174,7 +174,7 @@ export default function DonationsPage() {
                         ) : null}
                         {d.campaignName ? <Badge variant="default">{d.campaignName}</Badge> : null}
                         {d.departmentName ? (
-                          <Badge variant="outline">{d.departmentName}</Badge>
+                          <Badge variant="muted">{d.departmentName}</Badge>
                         ) : null}
                       </div>
                       {d.notes ? (

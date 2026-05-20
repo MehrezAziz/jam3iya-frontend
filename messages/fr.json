@@ -139,7 +139,26 @@
     "donationsCharts": "Dons dans le temps",
     "donationsChartsHint": "Totaux mensuels pour l'année en cours",
     "distributionsCharts": "Aides en espèces distribuées",
-    "distributionsChartsHint": "Aides mensuelles versées aux bénéficiaires"
+    "distributionsChartsHint": "Aides mensuelles versées aux bénéficiaires",
+    "availableBalance": "Solde disponible",
+    "availableBalanceHint": "Dons + virements entrants − distributions − virements sortants",
+    "departmentScope": "Département : {name}",
+    "departmentBalances": "Solde par département",
+    "departmentBalancesHint": "Chaque département ne dépense que son propre solde",
+    "donationsChartsByDept": "Dons par département",
+    "distributionsChartsByDept": "Distributions par département"
+  },
+  "treasury": {
+    "transfersTitle": "Virements entre départements",
+    "transfersHint": "Déplacer des fonds entre départements (département principal uniquement)",
+    "fromDepartment": "Département source",
+    "toDepartment": "Département destination",
+    "amount": "Montant (TND)",
+    "notes": "Notes",
+    "transferSubmit": "Enregistrer le virement",
+    "transferCreated": "Virement enregistré",
+    "transferInvalid": "Remplissez tous les champs obligatoires",
+    "sameDepartment": "Choisissez deux départements différents"
   },
   "bills": {
     "subtitle": "Émettre des reçus numérotés liés aux dons",
@@ -483,6 +502,8 @@
     "errBeneficiary": "Sélectionnez un bénéficiaire.",
     "errLines": "Ajoutez au moins une ligne.",
     "errCashLine": "Le montant doit être positif.",
+    "errExceedsBalance": "Le total en espèces dépasse le solde disponible ({available}).",
+    "exceedsBalanceHint": "Le total en espèces est supérieur au solde disponible de votre département.",
     "errItemLine": "Chaque ligne article doit avoir un article et une quantité positive."
   },
   "campaigns": {

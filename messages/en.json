@@ -139,7 +139,26 @@
     "donationsCharts": "Donations over time",
     "donationsChartsHint": "Monthly totals for the current year",
     "distributionsCharts": "Cash distributed",
-    "distributionsChartsHint": "Monthly cash aid delivered to beneficiaries"
+    "distributionsChartsHint": "Monthly cash aid delivered to beneficiaries",
+    "availableBalance": "Available balance",
+    "availableBalanceHint": "Donations + transfers in − cash distributions − transfers out",
+    "departmentScope": "Department: {name}",
+    "departmentBalances": "Balance by department",
+    "departmentBalancesHint": "Each department spends only from its own balance",
+    "donationsChartsByDept": "Donations by department",
+    "distributionsChartsByDept": "Cash distributed by department"
+  },
+  "treasury": {
+    "transfersTitle": "Inter-department transfers",
+    "transfersHint": "Move cash between department balances (main department only)",
+    "fromDepartment": "From department",
+    "toDepartment": "To department",
+    "amount": "Amount (TND)",
+    "notes": "Notes",
+    "transferSubmit": "Record transfer",
+    "transferCreated": "Transfer recorded",
+    "transferInvalid": "Fill all required fields",
+    "sameDepartment": "Choose two different departments"
   },
   "bills": {
     "subtitle": "Issue numbered receipts linked to donations",
@@ -519,6 +538,8 @@
     "errBeneficiary": "Please select a beneficiary.",
     "errLines": "Add at least one line.",
     "errCashLine": "Cash amount must be positive.",
+    "errExceedsBalance": "Total cash exceeds available balance ({available}).",
+    "exceedsBalanceHint": "The cash total is higher than your department's available balance.",
     "errItemLine": "Each item line must have an item and a positive quantity."
   },
   "campaigns": {

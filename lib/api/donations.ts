@@ -51,8 +51,43 @@ export function listDonations(params: ListDonationsParams = {}) {
   );
 }
 
+export interface DonationStats {
+  scopeDepartmentId: string | null;
+  scopeDepartmentName: string | null;
+  availableBalanceMinor: number;
+  totalDonationsMinor: number;
+  totalDistributionsCashMinor: number;
+  canManageTransfers: boolean;
+  month: {
+    donationsCount: number;
+    donationsSumMinor: number;
+    distributionsCount: number;
+    distributionsSumMinor: number;
+  };
+  donationsByMonth: { month: string; count: number; sumMinor: number }[];
+  distributionsByMonth: { month: string; count: number; sumMinor: number }[];
+  currentActiveBeneficiaries: number;
+  openCases: number;
+  departmentSeries?: {
+    departmentId: string;
+    departmentName: string;
+    donationsByMonth: { month: string; count: number; sumMinor: number }[];
+    distributionsByMonth: { month: string; count: number; sumMinor: number }[];
+    availableBalanceMinor: number;
+  }[];
+  departmentBalances?: {
+    departmentId: string;
+    departmentName: string;
+    donationsMinor: number;
+    transfersInMinor: number;
+    transfersOutMinor: number;
+    distributionsCashMinor: number;
+    availableBalanceMinor: number;
+  }[];
+}
+
 export function donationStats() {
-  return api('/donations/stats');
+  return api<DonationStats>('/donations/stats');
 }
 
 export function createCashDonation(input: {

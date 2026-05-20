@@ -22,6 +22,9 @@ import {
   type DistributionKind,
 } from '@/lib/api/distributions';
 import { tndToMinor, DEFAULT_CURRENCY, formatTnd } from '@/lib/money';
+import { donationStats } from '@/lib/api/donations';
+import { cn, formatTndMinor } from '@/lib/utils';
+import { AvailableBalanceBanner } from '@/components/available-balance-banner';
 
 interface CashLine {
   id: string;
@@ -56,6 +59,8 @@ export default function NewDistributionPage() {
   const [lines, setLines] = useState<Line[]>([
     { id: localId(), lineKind: 'cash', amountTnd: 0 },
   ]);
+
+  const statsQ = useQuery({ queryKey: ['donation-stats'], queryFn: () => donationStats() });
 
   const benQ = useQuery({ queryKey: ['ben', 'all'], queryFn: () => listBeneficiaries({ limit: 200 }) });
   const itemsQ = useQuery({ queryKey: ['inventory', 'items', 'all'], queryFn: () => listInventoryItems({ limit: 200 }) });
@@ -92,9 +97,23 @@ export default function NewDistributionPage() {
     setLines((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)) as Line[]);
   }
 
+  const totalCashMinor = lines
+    .filter((l): l is CashLine => l.lineKind === 'cash')
+    .reduce((sum, l) => sum + tndToMinor(l.amountTnd), 0);
+  const availableBalanceMinor = statsQ.data?.availableBalanceMinor ?? 0;
+  const exceedsBalance = totalCashMinor > availableBalanceMinor;
+
   function submit() {
     if (!beneficiaryId) {
       toast.error(t('distributions.errBeneficiary'));
+      return;
+    }
+    if (deliveryMode === 'planned' && exceedsBalance && totalCashMinor > 0) {
+      toast.error(
+        t('distributions.errExceedsBalance', {
+          available: formatTndMinor(availableBalanceMinor),
+        }),
+      );
       return;
     }
     if (lines.length === 0) {
@@ -146,6 +165,8 @@ export default function NewDistributionPage() {
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{t('distributions.newTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('distributions.newSubtitle')}</p>
       </header>
+
+      <AvailableBalanceBanner />
 
       <Card>
         <CardHeader>
@@ -266,6 +287,11 @@ export default function NewDistributionPage() {
                       placeholder="50.000"
                       value={line.amountTnd || ''}
                       onValueChange={(v) => update<CashLine>(line.id, { amountTnd: v })}
+                      className={cn(
+                        exceedsBalance &&
+                          line.amountTnd > 0 &&
+                          'border-destructive focus-visible:ring-destructive',
+                      )}
                     />
                   </div>
                   <div>
@@ -278,7 +304,12 @@ export default function NewDistributionPage() {
                     </Button>
                   </div>
                   {line.amountTnd > 0 && (
-                    <p className="text-xs text-muted-foreground md:col-span-3">
+                    <p
+                      className={cn(
+                        'text-xs md:col-span-3',
+                        exceedsBalance ? 'text-destructive' : 'text-muted-foreground',
+                      )}
+                    >
                       = {formatTnd(line.amountTnd)}
                     </p>
                   )}
@@ -327,6 +358,9 @@ export default function NewDistributionPage() {
               ),
             )
           )}
+          {exceedsBalance && totalCashMinor > 0 ? (
+            <p className="text-sm text-destructive">{t('distributions.exceedsBalanceHint')}</p>
+          ) : null}
         </CardContent>
       </Card>
 

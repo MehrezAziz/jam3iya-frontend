@@ -19,6 +19,7 @@ import { createCashDonation } from '@/lib/api/donations';
 import { searchDonors, type DonorSearchHit } from '@/lib/api/donors';
 import { listCampaigns, type CampaignListEntry } from '@/lib/api/campaigns';
 import { tndToMinor, DEFAULT_CURRENCY } from '@/lib/money';
+import { AvailableBalanceBanner } from '@/components/available-balance-banner';
 
 const COMMON_CATEGORIES = ['food', 'medicine', 'clothing', 'school_supplies', 'hygiene', 'blankets', 'furniture'];
 
@@ -115,7 +116,6 @@ export default function NewCashDonationPage() {
   const spendMode = form.watch('spendMode');
   const donorMode = form.watch('donorMode');
   const isAnonymous = form.watch('isAnonymous');
-
   const donorsQ = useQuery({
     queryKey: ['donors-search', debouncedSearch],
     queryFn: () => searchDonors(debouncedSearch),
@@ -165,6 +165,7 @@ export default function NewCashDonationPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t('donations.newCash')}</h1>
+      <AvailableBalanceBanner />
       <Card>
         <CardHeader>
           <CardTitle>{t('donations.newCash')}</CardTitle>
