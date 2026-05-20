@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
@@ -82,6 +82,7 @@ type FormData = z.infer<typeof schema>;
 export default function NewCashDonationPage() {
   const t = useTranslations();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [customCategory, setCustomCategory] = useState(false);
   const [donorSearch, setDonorSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -150,6 +151,8 @@ export default function NewCashDonationPage() {
         campaignId:
           values.spendMode === 'campaign' && values.campaignId ? values.campaignId : undefined,
       });
+      await queryClient.invalidateQueries({ queryKey: ['donations'] });
+      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       toast.success(t('common.successCreated'));
       router.push('/donations');
     } catch (err) {

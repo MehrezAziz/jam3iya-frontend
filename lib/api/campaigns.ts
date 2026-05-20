@@ -67,6 +67,24 @@ export function deleteCampaign(id: string) {
   return api(`/campaigns/${id}`, { method: 'DELETE' });
 }
 
+export interface CampaignDonationRow {
+  id: string;
+  kind: string;
+  amountMinor: number;
+  currency: string;
+  receivedAt: string;
+  isAnonymous: boolean;
+  donorNameSnapshot: string | null;
+  spendCategory: string | null;
+}
+
+export function listCampaignDonations(campaignId: string): Promise<{
+  campaign: { id: string; name: string };
+  items: CampaignDonationRow[];
+}> {
+  return api(`/campaigns/${campaignId}/donations`);
+}
+
 export function listOccasions(): Promise<Occasion[]> {
   return api('/occasions');
 }

@@ -16,6 +16,25 @@ export interface PlatformOrgSummary {
   departmentCount: number;
 }
 
+export interface PlatformOrgAdmin {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string | null;
+  status: string;
+  mustChangePassword: boolean;
+  lastLoginAt: string | null;
+}
+
+export interface PlatformOrgDetail extends PlatformOrgSummary {
+  email: string | null;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
+  mainDepartment: { name: string; region: string | null; city: string | null } | null;
+  admins: PlatformOrgAdmin[];
+}
+
 export interface CreateOrganizationInput {
   legalName: string;
   slug: string;
@@ -26,6 +45,8 @@ export interface CreateOrganizationInput {
   fiscalId?: string;
   publicPageEnabled?: boolean;
   mainDepartmentName?: string;
+  mainDepartmentRegion?: string;
+  mainDepartmentCity?: string;
   admin: {
     email: string;
     fullName: string;
@@ -47,8 +68,19 @@ export interface CreateOrganizationResult {
   loginUrl: string;
 }
 
+export interface ResetOrgAdminPasswordResult {
+  userId: string;
+  email: string;
+  oneTimePassword: string | null;
+  mustChangePassword: boolean;
+}
+
 export async function listPlatformOrganizations(): Promise<PlatformOrgSummary[]> {
   return api('/platform/organizations');
+}
+
+export async function getPlatformOrganization(id: string): Promise<PlatformOrgDetail> {
+  return api(`/platform/organizations/${id}`);
 }
 
 export async function createPlatformOrganization(
@@ -62,4 +94,15 @@ export async function suspendPlatformOrganization(
   body: { suspended: boolean; reason?: string },
 ): Promise<PlatformOrgSummary> {
   return api(`/platform/organizations/${id}/suspend`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+export async function resetOrgAdminPassword(
+  orgId: string,
+  userId: string,
+  body?: { newPassword?: string },
+): Promise<ResetOrgAdminPasswordResult> {
+  return api(`/platform/organizations/${orgId}/admins/${userId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify(body ?? {}),
+  });
 }

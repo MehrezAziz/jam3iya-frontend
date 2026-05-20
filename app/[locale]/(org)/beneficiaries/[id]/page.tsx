@@ -66,10 +66,11 @@ import {
   addSocialCoverage,
   deleteSocialCoverage,
 } from '@/lib/api/beneficiaries';
-import { uploadFile, listDocuments, attachDocument } from '@/lib/api/files';
+import { BeneficiaryDocumentsSection } from '@/components/beneficiary-documents-section';
 import { getBeneficiaryAccessStatus, verifyBeneficiaryAccessPin } from '@/lib/api/tenancy';
 import { PinInput } from '@/components/pin-input';
 import { DEFAULT_CURRENCY, formatMoney } from '@/lib/money';
+import { normalizeCinInput } from '@/lib/cin';
 import { toast } from 'sonner';
 
 interface BeneficiarySummary {
@@ -351,7 +352,7 @@ export default function BeneficiaryPage({ params }: { params: Promise<{ id: stri
                 <HousingSection beneficiaryId={id} t={t} />
               )}
               {tab === 'documents' && (
-                <DocumentsSection beneficiaryId={id} t={t} />
+                <BeneficiaryDocumentsSection beneficiaryId={id} t={t} />
               )}
               {tab === 'social' && (
                 <SocialCoverageSection beneficiaryId={id} t={t} />
@@ -710,7 +711,13 @@ function DependentForm({
         </div>
         <div>
           <Label>{t('beneficiaries.cin')}</Label>
-          <Input value={cin} onChange={(e) => setCin(e.target.value)} maxLength={8} />
+          <Input
+            inputMode="numeric"
+            value={cin}
+            onChange={(e) => setCin(normalizeCinInput(e.target.value))}
+            maxLength={8}
+            placeholder="00000000"
+          />
         </div>
         <div>
           <Label>{t('beneficiaries.phone')}</Label>
@@ -798,7 +805,13 @@ function SpouseForm({
         </div>
         <div>
           <Label>{t('beneficiaries.cin')}</Label>
-          <Input maxLength={8} value={cin} onChange={(e) => setCin(e.target.value)} />
+          <Input
+            inputMode="numeric"
+            maxLength={8}
+            value={cin}
+            placeholder="00000000"
+            onChange={(e) => setCin(normalizeCinInput(e.target.value))}
+          />
         </div>
         <div>
           <Label>{t('beneficiaries.phone')}</Label>
@@ -1586,82 +1599,6 @@ function HousingForm({
           {mut.isPending ? t('common.loading') : t('common.create')}
         </Button>
       </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// Documents
-// =============================================================================
-function DocumentsSection({ beneficiaryId, t }: { beneficiaryId: string; t: (k: string) => string }) {
-  const qc = useQueryClient();
-  const docsQ = useQuery({
-    queryKey: ['documents', 'beneficiary', beneficiaryId],
-    queryFn: () => listDocuments('beneficiary', beneficiaryId),
-  });
-
-  async function onUpload(category: 'cin' | 'other', file: File) {
-    try {
-      const uploaded = await uploadFile(file);
-      await attachDocument({
-        ownerType: 'beneficiary',
-        ownerId: beneficiaryId,
-        category,
-        fileId: uploaded.id,
-      });
-      toast.success(t('beneficiaries.documentUploaded'));
-      qc.invalidateQueries({ queryKey: ['documents', 'beneficiary', beneficiaryId] });
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">{t('beneficiaries.documentsHint')}</p>
-      <div className="flex flex-wrap gap-3">
-        <label className="cursor-pointer rounded-md border border-dashed border-border px-4 py-2 text-sm hover:bg-muted/50">
-          {t('beneficiaries.uploadCin')}
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onUpload('cin', f);
-            }}
-          />
-        </label>
-        <label className="cursor-pointer rounded-md border border-dashed border-border px-4 py-2 text-sm hover:bg-muted/50">
-          {t('beneficiaries.uploadOther')}
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onUpload('other', f);
-            }}
-          />
-        </label>
-      </div>
-      {docsQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
-      ) : docsQ.data?.length ? (
-        <ul className="divide-y rounded-md border border-border">
-          {docsQ.data.map((d) => (
-            <li key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
-              <span>
-                <Badge variant="muted">{d.category}</Badge>
-                <span className="ms-2 text-muted-foreground">{d.file.mime}</span>
-              </span>
-              <span className="text-xs text-muted-foreground">{formatDate(d.createdAt)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">—</p>
-      )}
     </div>
   );
 }

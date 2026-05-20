@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { listBeneficiaries, type BeneficiaryStatus } from '@/lib/api/beneficiaries';
 import type { ListResponse, BeneficiarySummaryItem } from '@/lib/api/beneficiaries';
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
+import { DepartmentFilter } from '@/components/department-filter';
+import { useDepartmentScope } from '@/lib/department-scope';
 import { useState } from 'react';
 import { FileText, Search } from 'lucide-react';
 
@@ -24,11 +26,19 @@ const STATUS_VARIANT: Record<BeneficiaryStatus, 'default' | 'success' | 'warning
 export default function BeneficiariesPage() {
   const t = useTranslations();
   const [q, setQ] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
   const debouncedQ = useDebouncedValue(q.trim(), 350);
+  const { lockedDepartmentId } = useDepartmentScope();
+  const effectiveDepartmentId = lockedDepartmentId ?? (departmentId || undefined);
 
   const { data, isLoading, isFetching } = useQuery<ListResponse<BeneficiarySummaryItem>>({
-    queryKey: ['beneficiaries', debouncedQ],
-    queryFn: () => listBeneficiaries({ q: debouncedQ || undefined, limit: 50 }),
+    queryKey: ['beneficiaries', debouncedQ, effectiveDepartmentId],
+    queryFn: () =>
+      listBeneficiaries({
+        q: debouncedQ || undefined,
+        departmentId: effectiveDepartmentId,
+        limit: 50,
+      }),
   });
 
   return (
@@ -40,14 +50,19 @@ export default function BeneficiariesPage() {
         </Button>
       </header>
 
-      <div className="relative max-w-md">
-        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={t('beneficiaries.searchPlaceholder')}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="ps-9"
-        />
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="relative min-w-[16rem] flex-1 max-w-md">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={t('beneficiaries.searchPlaceholder')}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="ps-9"
+          />
+        </div>
+        <div className="w-full min-w-[12rem] sm:w-56">
+          <DepartmentFilter value={departmentId} onChange={setDepartmentId} />
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">{t('beneficiaries.searchHint')}</p>
 
@@ -69,6 +84,7 @@ export default function BeneficiariesPage() {
                       <span className="font-medium">{b.code}</span>
                       <span className="text-sm text-muted-foreground">
                         {b.publicAlias ?? '—'} · {b.region ?? ''} {b.city ?? ''}
+                        {b.departmentName ? ` · ${b.departmentName}` : ''}
                       </span>
                       <span className="mt-1 flex items-center gap-1 text-xs text-primary">
                         <FileText className="h-3 w-3" />

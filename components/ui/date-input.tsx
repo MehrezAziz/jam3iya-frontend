@@ -9,19 +9,36 @@ import { cn } from '@/lib/utils';
  * Falls back to the native date picker on every browser, but the icon
  * gives clear visual affordance and works with manual typing too.
  *
- * The value/onChange contract is identical to a regular `<input type="date">`.
+ * Works with react-hook-form `register()` (uncontrolled) and with an
+ * explicit `value` prop (controlled). When `value` is omitted, the native
+ * input manages its own display; when provided, `undefined` is coerced to ''.
  */
 export const DateInput = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
->(({ className, type: _ignored, ...props }, ref) => {
+>(({ className, type: _ignored, value, ref: fieldRef, ...props }, forwardedRef) => {
   const localRef = React.useRef<HTMLInputElement | null>(null);
-  React.useImperativeHandle(ref, () => localRef.current as HTMLInputElement);
+
+  const setRefs = React.useCallback(
+    (node: HTMLInputElement | null) => {
+      localRef.current = node;
+      if (typeof fieldRef === 'function') {
+        fieldRef(node);
+      } else if (fieldRef) {
+        (fieldRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
+      }
+      if (typeof forwardedRef === 'function') {
+        forwardedRef(node);
+      } else if (forwardedRef) {
+        forwardedRef.current = node;
+      }
+    },
+    [fieldRef, forwardedRef],
+  );
 
   function openPicker() {
     const el = localRef.current;
     if (!el) return;
-    // showPicker() exists on modern browsers (Chrome, Edge, Safari 16+, FF >=99)
     if (typeof (el as HTMLInputElement & { showPicker?: () => void }).showPicker === 'function') {
       try {
         (el as HTMLInputElement & { showPicker: () => void }).showPicker();
@@ -36,7 +53,7 @@ export const DateInput = React.forwardRef<
   return (
     <div className="relative">
       <input
-        ref={localRef}
+        ref={setRefs}
         type="date"
         className={cn(
           'flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 ps-3 pe-10 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
@@ -44,6 +61,7 @@ export const DateInput = React.forwardRef<
           className,
         )}
         {...props}
+        {...(value !== undefined ? { value: value ?? '' } : {})}
       />
       <button
         type="button"

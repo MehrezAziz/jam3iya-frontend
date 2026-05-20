@@ -13,6 +13,8 @@ export interface DonationItem {
   spendCategory: string | null;
   isAnonymous: boolean;
   donorNameSnapshot: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
   notes: string | null;
   receiptBill: {
     id: string;
@@ -30,6 +32,7 @@ export interface ListDonationsParams {
   spendCategories?: string[];
   from?: string;
   to?: string;
+  departmentId?: string;
 }
 
 export function listDonations(params: ListDonationsParams = {}) {
@@ -39,6 +42,7 @@ export function listDonations(params: ListDonationsParams = {}) {
   if (params.kind) sp.set('kind', params.kind);
   if (params.from) sp.set('from', params.from);
   if (params.to) sp.set('to', params.to);
+  if (params.departmentId) sp.set('departmentId', params.departmentId);
   params.campaignIds?.forEach((id) => sp.append('campaignIds', id));
   params.spendCategories?.forEach((c) => sp.append('spendCategories', c));
   const qs = sp.toString();

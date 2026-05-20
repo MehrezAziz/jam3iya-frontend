@@ -23,7 +23,7 @@ const staffSchema = z.object({
 
 const deptSchema = z.object({
   organizationSlug: z.string().min(1).max(80),
-  loginCode: z.string().min(2).max(40),
+  email: z.string().email(),
   password: z.string().min(8),
 });
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
   });
   const deptForm = useForm<DeptForm>({
     resolver: zodResolver(deptSchema),
-    defaultValues: { organizationSlug: 'demo', loginCode: '', password: '' },
+    defaultValues: { organizationSlug: 'demo', email: '', password: '' },
   });
 
   async function onStaffSubmit(values: StaffForm) {
@@ -132,8 +132,8 @@ export default function LoginPage() {
               <Input id="dept-org" autoComplete="organization" {...deptForm.register('organizationSlug')} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="loginCode">{t('auth.departmentCode')}</Label>
-              <Input id="loginCode" autoComplete="username" {...deptForm.register('loginCode')} />
+              <Label htmlFor="dept-email">{t('auth.email')}</Label>
+              <Input id="dept-email" type="email" autoComplete="email" {...deptForm.register('email')} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="dept-password">{t('auth.password')}</Label>

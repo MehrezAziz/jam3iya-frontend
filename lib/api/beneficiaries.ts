@@ -10,6 +10,8 @@ export interface BeneficiarySummaryItem {
   region: string | null;
   city: string | null;
   publicAlias: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
   createdAt: string;
   lastVerifiedAt: string | null;
   validUntil: string | null;
@@ -25,6 +27,7 @@ export interface ListResponse<T> {
 export function listBeneficiaries(params: {
   q?: string;
   status?: BeneficiaryStatus;
+  departmentId?: string;
   limit?: number;
   offset?: number;
 } = {}): Promise<ListResponse<BeneficiarySummaryItem>> {

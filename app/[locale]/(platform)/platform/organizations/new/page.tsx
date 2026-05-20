@@ -16,6 +16,8 @@ import {
   type CreateOrganizationResult,
 } from '@/lib/api/platform';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { listGovernorates, listDelegations, type Governorate } from '@/lib/api/geo';
 import { CheckCircle2, Copy, AlertTriangle } from 'lucide-react';
 
 const slugRegex = /^[a-z0-9](?:[a-z0-9-]{1,48}[a-z0-9])?$/;
@@ -35,6 +37,8 @@ const schema = z.object({
   fiscalId: z.string().max(40).optional().or(z.literal('')),
   publicPageEnabled: z.boolean(),
   mainDepartmentName: z.string().min(2),
+  mainDepartmentRegion: z.string().max(120).optional(),
+  mainDepartmentCity: z.string().max(120).optional(),
   admin: z.object({
     email: z.string().email().max(254),
     fullName: z.string().min(2).max(200),
@@ -68,8 +72,24 @@ export default function NewOrganizationPage() {
       fiscalId: '',
       publicPageEnabled: true,
       mainDepartmentName: 'Administration',
+      mainDepartmentRegion: '',
+      mainDepartmentCity: '',
       admin: { email: '', fullName: '', phone: '', locale: 'ar', initialPassword: '' },
     },
+  });
+
+  const selectedGovName = form.watch('mainDepartmentRegion');
+  const governoratesQ = useQuery<Governorate[]>({
+    queryKey: ['governorates'],
+    queryFn: listGovernorates,
+    retry: 1,
+  });
+  const governorates = governoratesQ.data;
+  const selectedGov = governorates?.find((g) => g.name === selectedGovName);
+  const { data: delegations } = useQuery({
+    queryKey: ['delegations', selectedGov?.id],
+    queryFn: () => listDelegations(selectedGov!.id),
+    enabled: !!selectedGov?.id,
   });
 
   async function onSubmit(values: FormValues) {
@@ -84,6 +104,8 @@ export default function NewOrganizationPage() {
         fiscalId: values.fiscalId ? values.fiscalId : undefined,
         publicPageEnabled: values.publicPageEnabled,
         mainDepartmentName: values.mainDepartmentName,
+        mainDepartmentRegion: values.mainDepartmentRegion || undefined,
+        mainDepartmentCity: values.mainDepartmentCity || undefined,
         admin: {
           email: values.admin.email,
           fullName: values.admin.fullName,
@@ -218,6 +240,37 @@ export default function NewOrganizationPage() {
             <div className="space-y-1.5 md:col-span-2">
               <Label htmlFor="mainDepartmentName">{t('platform.mainDepartmentName')}</Label>
               <Input id="mainDepartmentName" {...form.register('mainDepartmentName')} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('platform.mainDepartmentRegion')}</Label>
+              <Select
+                {...form.register('mainDepartmentRegion')}
+                onChange={(e) => {
+                  form.setValue('mainDepartmentRegion', e.target.value);
+                  form.setValue('mainDepartmentCity', '');
+                }}
+              >
+                <option value="">—</option>
+                {(governorates ?? []).map((g) => (
+                  <option key={g.id} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </Select>
+              {governoratesQ.isError ? (
+                <p className="mt-1 text-xs text-destructive">{(governoratesQ.error as Error).message}</p>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('platform.mainDepartmentCity')}</Label>
+              <Select {...form.register('mainDepartmentCity')} disabled={!selectedGov}>
+                <option value="">—</option>
+                {(delegations ?? []).map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </Select>
             </div>
             <label className="flex items-center gap-2 md:col-span-2">
               <input

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
-import { AppShell } from '@/components/app-shell';
+import { OrgAppShell } from '@/components/org-app-shell';
 import { requireUser } from '@/lib/session';
 
 export default async function OrgLayout({
@@ -19,8 +19,11 @@ export default async function OrgLayout({
     throw new Error('redirected');
   }
   return (
-    <AppShell kind="staff" user={{ fullName: user.fullName, email: user.email }}>
+    <OrgAppShell
+      user={{ fullName: user.fullName, email: user.email }}
+      lockedDepartmentId={user.departmentId ?? null}
+    >
       {children}
-    </AppShell>
+    </OrgAppShell>
   );
 }

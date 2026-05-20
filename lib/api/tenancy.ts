@@ -5,6 +5,18 @@ export interface Department {
   name: string;
   description: string | null;
   isMain: boolean;
+  region: string | null;
+  city: string | null;
+  loginCode?: string | null;
+  loginEmail?: string | null;
+}
+
+export interface MainDepartment {
+  id: string;
+  name: string;
+  region: string | null;
+  city: string | null;
+  isMain: boolean;
 }
 
 export interface OrganizationProfile {
@@ -27,6 +39,20 @@ export function myOrganization(): Promise<OrganizationProfile> {
 
 export function listDepartments(): Promise<Department[]> {
   return api('/departments');
+}
+
+export function getMainDepartment(): Promise<MainDepartment> {
+  return api('/departments/main');
+}
+
+export function updateMainDepartmentLocation(input: {
+  region?: string | null;
+  city?: string | null;
+}) {
+  return api('/departments/main/location', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
 }
 
 export function getBeneficiaryAccessStatus(): Promise<{
@@ -58,7 +84,7 @@ export function createDepartment(input: {
   name: string;
   description?: string;
   isMain?: boolean;
-  loginCode?: string;
+  loginEmail?: string;
   password?: string;
 }) {
   return api('/departments', { method: 'POST', body: JSON.stringify(input) });

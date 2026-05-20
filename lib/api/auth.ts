@@ -17,6 +17,7 @@ export interface MeUser {
   email: string;
   fullName: string;
   sessionId: string;
+  departmentId?: string | null;
   organization?: {
     id: string;
     legalName: string;
@@ -41,7 +42,7 @@ export async function login(input: {
 
 export async function departmentLogin(input: {
   organizationSlug: string;
-  loginCode: string;
+  email: string;
   password: string;
 }): Promise<{ user: SessionUser }> {
   return api('/auth/login/department', { method: 'POST', body: JSON.stringify(input) });

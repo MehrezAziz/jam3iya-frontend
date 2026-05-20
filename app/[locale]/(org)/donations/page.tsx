@@ -18,6 +18,8 @@ import { useMutation } from '@tanstack/react-query';
 import { listCampaigns } from '@/lib/api/campaigns';
 import { formatTndMinor, formatGregorianAndHijri } from '@/lib/utils';
 import { CopyableId } from '@/components/copyable-id';
+import { DepartmentFilter } from '@/components/department-filter';
+import { useDepartmentScope } from '@/lib/department-scope';
 import { useLocale } from 'next-intl';
 
 const DONATION_CATEGORIES = [
@@ -38,11 +40,14 @@ export default function DonationsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const { lockedDepartmentId } = useDepartmentScope();
+  const effectiveDepartmentId = lockedDepartmentId ?? (departmentId || undefined);
 
   const campaignsQ = useQuery({ queryKey: ['campaigns'], queryFn: listCampaigns });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['donations', { kind, selectedCampaigns, selectedCategories, from, to }],
+    queryKey: ['donations', { kind, selectedCampaigns, selectedCategories, from, to, effectiveDepartmentId }],
     queryFn: () =>
       listDonations({
         limit: 100,
@@ -51,6 +56,7 @@ export default function DonationsPage() {
         spendCategories: selectedCategories.length ? selectedCategories : undefined,
         from: from || undefined,
         to: to || undefined,
+        departmentId: effectiveDepartmentId,
       }),
   });
 
@@ -82,7 +88,8 @@ export default function DonationsPage() {
 
       <Card>
         <CardContent className="space-y-4 p-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <DepartmentFilter value={departmentId} onChange={setDepartmentId} />
             <div>
               <Label>{t('donations.filterKind')}</Label>
               <Select value={kind} onChange={(e) => setKind(e.target.value)}>
@@ -166,6 +173,9 @@ export default function DonationsPage() {
                           <Badge variant="muted">{d.spendCategory.replace(/_/g, ' ')}</Badge>
                         ) : null}
                         {d.campaignName ? <Badge variant="default">{d.campaignName}</Badge> : null}
+                        {d.departmentName ? (
+                          <Badge variant="outline">{d.departmentName}</Badge>
+                        ) : null}
                       </div>
                       {d.notes ? (
                         <p className="text-sm text-muted-foreground">

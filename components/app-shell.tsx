@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,8 @@ import {
   Building2,
   Boxes,
   Megaphone,
+  Menu,
+  X,
 } from 'lucide-react';
 import { logout } from '@/lib/api/auth';
 import { toast } from 'sonner';
@@ -53,6 +55,40 @@ const PLATFORM_NAV: NavItem[] = [
   { href: '/audit', labelKey: 'nav.audit', icon: <ScrollText className="h-4 w-4" /> },
 ];
 
+function SidebarNav({
+  nav,
+  pathname,
+  t,
+  onNavigate,
+}: {
+  nav: NavItem[];
+  pathname: string | null;
+  t: (key: string) => string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-1 p-3">
+      {nav.map((item) => {
+        const active = pathname?.startsWith(item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+              active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted',
+            )}
+          >
+            {item.icon}
+            <span>{t(item.labelKey)}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function AppShell({
   kind,
   user,
@@ -68,6 +104,20 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const nav = isPlatformAdmin ? PLATFORM_NAV : kind === 'staff' ? STAFF_NAV : DONOR_NAV;
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   async function onLogout() {
     try {
@@ -78,8 +128,22 @@ export function AppShell({
     }
   }
 
+  const sidebarFooter = (
+    <div className="border-t border-border p-3">
+      <div className="mb-2 text-xs text-muted-foreground">
+        <div className="font-medium text-foreground">{user.fullName}</div>
+        <div>{user.email}</div>
+      </div>
+      <Button variant="outline" size="sm" className="w-full" onClick={onLogout}>
+        <LogOut className="h-4 w-4" />
+        {t('auth.logout')}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Desktop sidebar */}
       <aside className="hidden w-64 flex-shrink-0 border-e border-border bg-background md:flex md:flex-col">
         <div className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-2 text-primary">
@@ -87,39 +151,59 @@ export function AppShell({
             <span className="text-lg font-bold">{t('app.name')}</span>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {nav.map((item) => {
-            const active = pathname?.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                  active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted',
-                )}
-              >
-                {item.icon}
-                <span>{t(item.labelKey)}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-border p-3">
-          <div className="mb-2 text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">{user.fullName}</div>
-            <div>{user.email}</div>
+        <SidebarNav nav={nav} pathname={pathname} t={t} />
+        {sidebarFooter}
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label={t('common.close')}
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
+      <aside
+        className={cn(
+          'fixed inset-y-0 start-0 z-50 flex w-64 flex-col border-e border-border bg-background shadow-lg transition-transform duration-200 md:hidden',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <div className="flex items-center justify-between border-b border-border px-4 py-4">
+          <div className="flex items-center gap-2 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+            <span className="text-lg font-bold">{t('app.name')}</span>
           </div>
-          <Button variant="outline" size="sm" className="w-full" onClick={onLogout}>
-            <LogOut className="h-4 w-4" />
-            {t('auth.logout')}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={t('common.close')}
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="h-5 w-5" />
           </Button>
         </div>
+        <SidebarNav nav={nav} pathname={pathname} t={t} onNavigate={() => setMobileOpen(false)} />
+        {sidebarFooter}
       </aside>
 
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:px-4">
           <div className="flex min-w-0 items-center gap-2 md:hidden">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label={t('nav.menu')}
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((o) => !o)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
             <span className="truncate text-sm font-bold text-primary">{t('app.name')}</span>
           </div>

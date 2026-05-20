@@ -20,6 +20,7 @@ import {
   listCampaigns,
   createCampaign,
   updateCampaign,
+  listCampaignDonations,
   listOccasions,
   createOccasion,
   type CampaignListEntry,
@@ -316,6 +317,12 @@ function CampaignCard({
   t: (k: string) => string;
   onUpdated: () => void;
 }) {
+  const [showDonations, setShowDonations] = useState(false);
+  const donationsQ = useQuery({
+    queryKey: ['campaign-donations', c.id],
+    queryFn: () => listCampaignDonations(c.id),
+    enabled: showDonations,
+  });
   const [editing, setEditing] = useState(false);
   const [startsAt, setStartsAt] = useState(c.startsAt.slice(0, 10));
   const [endsAt, setEndsAt] = useState(c.endsAt.slice(0, 10));
@@ -401,6 +408,35 @@ function CampaignCard({
       <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
         {c.visibleOnPublicPage ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
         {c.visibleOnPublicPage ? t('campaigns.public') : t('campaigns.notPublic')}
+      </div>
+      <div className="mt-3">
+        <Button type="button" variant="outline" size="sm" onClick={() => setShowDonations((v) => !v)}>
+          {showDonations ? t('campaigns.hideDonations') : t('campaigns.showDonations')}
+        </Button>
+        {showDonations && (
+          <div className="mt-2 rounded border border-border bg-muted/20 p-2">
+            {donationsQ.isLoading ? (
+              <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
+            ) : donationsQ.data && donationsQ.data.items.length > 0 ? (
+              <ul className="divide-y text-xs">
+                {donationsQ.data.items.map((d) => (
+                  <li key={d.id} className="flex justify-between gap-2 py-1.5">
+                    <span>
+                      {d.isAnonymous
+                        ? t('donations.anonymous')
+                        : d.donorNameSnapshot ?? t('donations.guest')}
+                    </span>
+                    <span className="tabular-nums">
+                      {formatMoney(d.amountMinor, d.currency)} · {formatDate(d.receivedAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t('campaigns.noDonations')}</p>
+            )}
+          </div>
+        )}
       </div>
     </li>
   );

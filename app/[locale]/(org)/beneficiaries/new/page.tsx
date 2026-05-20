@@ -15,7 +15,9 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
 import { createBeneficiary } from '@/lib/api/beneficiaries';
-import { listDepartments, type Department } from '@/lib/api/tenancy';
+import { normalizeCinInput, optionalCinSchema } from '@/lib/cin';
+import { getMainDepartment, listDepartments, type Department } from '@/lib/api/tenancy';
+import { useDepartmentScope } from '@/lib/department-scope';
 import { listGovernorates, listDelegations, type Governorate, type Delegation } from '@/lib/api/geo';
 
 const schema = z.object({
@@ -38,6 +40,7 @@ type FormData = z.infer<typeof schema>;
 export default function NewBeneficiaryPage() {
   const t = useTranslations();
   const router = useRouter();
+  const { lockedDepartmentId } = useDepartmentScope();
 
   const { data: departments } = useQuery<Department[]>({
     queryKey: ['departments'],
@@ -62,12 +65,28 @@ export default function NewBeneficiaryPage() {
     enabled: !!selectedGov?.id,
   });
 
+  const mainDeptQ = useQuery({
+    queryKey: ['main-department'],
+    queryFn: () => getMainDepartment(),
+  });
+
   useEffect(() => {
+    if (lockedDepartmentId) {
+      form.setValue('departmentId', lockedDepartmentId);
+      return;
+    }
     if (departments && departments.length > 0 && !form.getValues('departmentId')) {
       const main = departments.find((d) => d.isMain) ?? departments[0];
       form.setValue('departmentId', main.id);
     }
-  }, [departments, form]);
+  }, [departments, form, lockedDepartmentId]);
+
+  useEffect(() => {
+    const main = mainDeptQ.data;
+    if (!main) return;
+    if (!form.getValues('region') && main.region) form.setValue('region', main.region);
+    if (!form.getValues('city') && main.city) form.setValue('city', main.city);
+  }, [mainDeptQ.data, form]);
 
   async function onSubmit(values: FormData) {
     try {
@@ -124,7 +143,24 @@ export default function NewBeneficiaryPage() {
                 <option value="separated">{t('beneficiaries.marital_separated')}</option>
               </Select>
             </div>
-            <Field label={t('beneficiaries.cin')} maxLength={8} {...form.register('cin')} />
+            <div>
+              <Label>{t('beneficiaries.cin')}</Label>
+              <Input
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={8}
+                placeholder="00000000"
+                {...form.register('cin', {
+                  onChange: (e) => {
+                    form.setValue('cin', normalizeCinInput(e.target.value), { shouldValidate: true });
+                  },
+                })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{t('beneficiaries.cinHint')}</p>
+              {form.formState.errors.cin ? (
+                <p className="mt-1 text-xs text-destructive">{form.formState.errors.cin.message}</p>
+              ) : null}
+            </div>
             <Field label={t('beneficiaries.phone')} {...form.register('phone')} />
             <Field label={t('beneficiaries.publicAlias')} {...form.register('publicAlias')} />
             <div>
@@ -161,13 +197,24 @@ export default function NewBeneficiaryPage() {
             </div>
             <div className="md:col-span-2">
               <Label>{t('beneficiaries.department')}</Label>
-              <Select {...form.register('departmentId')}>
-                {(departments ?? []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </Select>
+              {lockedDepartmentId ? (
+                <Input
+                  readOnly
+                  disabled
+                  value={
+                    (departments ?? []).find((d) => d.id === lockedDepartmentId)?.name ??
+                    lockedDepartmentId
+                  }
+                />
+              ) : (
+                <Select {...form.register('departmentId')}>
+                  {(departments ?? []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
             <div className="md:col-span-2">
               <Label>{t('beneficiaries.reason')}</Label>

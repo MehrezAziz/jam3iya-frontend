@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { DateInput } from '@/components/ui/date-input';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { getBeneficiaryFull, updateBeneficiary } from '@/lib/api/beneficiaries';
+import { normalizeCinInput } from '@/lib/cin';
 import { getBeneficiaryAccessStatus, verifyBeneficiaryAccessPin } from '@/lib/api/tenancy';
 import { PinInput } from '@/components/pin-input';
 
@@ -21,6 +22,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
   const t = useTranslations();
   const router = useRouter();
   const [form, setForm] = useState<Record<string, string>>({});
+  const [cinError, setCinError] = useState<string | null>(null);
   const [pin, setPin] = useState('');
 
   const accessQ = useQuery({
@@ -39,25 +41,35 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
   });
 
   const save = useMutation({
-    mutationFn: () =>
-      updateBeneficiary(id, {
+    mutationFn: () => {
+      const cinDigits = normalizeCinInput(form.cin ?? '');
+      if (cinDigits.length > 0 && cinDigits.length !== 8) {
+        throw new Error(t('validation.invalidCin'));
+      }
+      return updateBeneficiary(id, {
         firstName: form.firstName,
         lastName: form.lastName,
         gender: form.gender as 'male' | 'female',
         dateOfBirth: form.dateOfBirth || undefined,
         maritalStatus: form.maritalStatus as 'single' | 'married' | 'divorced' | 'widowed' | 'separated',
-        cin: form.cin || undefined,
+        cin: cinDigits.length > 0 ? cinDigits : undefined,
         phone: form.phone || undefined,
         address: form.address || undefined,
         region: form.region || undefined,
         city: form.city || undefined,
         publicAlias: form.publicAlias || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
+      setCinError(null);
       toast.success(t('common.successUpdated'));
       router.push(`/beneficiaries/${id}`);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => {
+      const msg = (err as Error).message;
+      if (msg.toLowerCase().includes('cin')) setCinError(msg);
+      toast.error(msg);
+    },
   });
 
   const b = q.data as {
@@ -166,9 +178,23 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
           </div>
           <div>
             <Label>{t('beneficiaries.dateOfBirth')}</Label>
-            <DateInput value={form.dateOfBirth} onChange={(e) => set('dateOfBirth', e.target.value)} />
+            <DateInput value={form.dateOfBirth ?? ''} onChange={(e) => set('dateOfBirth', e.target.value)} />
           </div>
-          <Field label={t('beneficiaries.cin')} value={form.cin ?? ''} onChange={(v) => set('cin', v)} />
+          <div>
+            <Label>{t('beneficiaries.cin')}</Label>
+            <Input
+              inputMode="numeric"
+              maxLength={8}
+              value={form.cin ?? ''}
+              className={cinError ? 'border-destructive' : undefined}
+              onChange={(e) => {
+                setCinError(null);
+                set('cin', normalizeCinInput(e.target.value));
+              }}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t('beneficiaries.cinHint')}</p>
+            {cinError ? <p className="mt-1 text-xs text-destructive">{cinError}</p> : null}
+          </div>
           <Field label={t('beneficiaries.phone')} value={form.phone ?? ''} onChange={(v) => set('phone', v)} />
           <div className="sm:col-span-2">
             <Label>{t('beneficiaries.address')}</Label>

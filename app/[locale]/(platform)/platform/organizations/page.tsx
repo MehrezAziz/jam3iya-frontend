@@ -11,7 +11,7 @@ import {
   suspendPlatformOrganization,
   type PlatformOrgSummary,
 } from '@/lib/api/platform';
-import { Building2, Plus, Power } from 'lucide-react';
+import { Building2, Eye, Plus, Power } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PlatformOrgsPage() {
@@ -97,7 +97,14 @@ export default function PlatformOrgsPage() {
                       {new Date(o.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-end">
-                      <Button
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/platform/organizations/${o.id}`}>
+                            <Eye className="h-3 w-3" />
+                            {t('platform.viewOrg')}
+                          </Link>
+                        </Button>
+                        <Button
                         variant={o.status === 'active' ? 'outline' : 'default'}
                         size="sm"
                         disabled={suspendMutation.isPending}
@@ -119,6 +126,7 @@ export default function PlatformOrgsPage() {
                         <Power className="h-3 w-3" />
                         {o.status === 'active' ? t('platform.suspend') : t('platform.reactivate')}
                       </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
