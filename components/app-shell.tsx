@@ -94,16 +94,20 @@ export function AppShell({
   user,
   children,
   isPlatformAdmin = false,
+  brandTitle,
 }: {
   kind: 'staff' | 'donor';
   user: { fullName: string; email: string };
   children: ReactNode;
   isPlatformAdmin?: boolean;
+  /** When set (e.g. organization legal name), shown in the shell header instead of the app name. */
+  brandTitle?: string;
 }) {
   const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
   const nav = isPlatformAdmin ? PLATFORM_NAV : kind === 'staff' ? STAFF_NAV : DONOR_NAV;
+  const headerTitle = brandTitle?.trim() || t('app.name');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -148,7 +152,9 @@ export function AppShell({
         <div className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
-            <span className="text-lg font-bold">{t('app.name')}</span>
+            <span className="truncate text-lg font-bold" title={headerTitle}>
+              {headerTitle}
+            </span>
           </div>
         </div>
         <SidebarNav nav={nav} pathname={pathname} t={t} />
@@ -174,7 +180,9 @@ export function AppShell({
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
-            <span className="text-lg font-bold">{t('app.name')}</span>
+            <span className="truncate text-lg font-bold" title={headerTitle}>
+              {headerTitle}
+            </span>
           </div>
           <Button
             type="button"
@@ -192,7 +200,7 @@ export function AppShell({
 
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:px-4">
-          <div className="flex min-w-0 items-center gap-2 md:hidden">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
             <Button
               type="button"
               variant="ghost"
@@ -205,9 +213,11 @@ export function AppShell({
               <Menu className="h-5 w-5" />
             </Button>
             <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
-            <span className="truncate text-sm font-bold text-primary">{t('app.name')}</span>
+            <span className="truncate text-sm font-bold text-primary" title={headerTitle}>
+              {headerTitle}
+            </span>
           </div>
-          <DualDateHeader className="mx-auto flex-1 md:mx-0" />
+          <DualDateHeader className="mx-auto hidden flex-1 md:block md:mx-0" />
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
             <Button variant="ghost" size="sm" className="md:hidden" onClick={onLogout}>

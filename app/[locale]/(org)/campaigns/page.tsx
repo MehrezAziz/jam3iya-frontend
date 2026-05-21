@@ -33,15 +33,22 @@ const campaignSchema = z
     description: z.string().max(2000).optional(),
     occasionId: z.string().uuid().optional().or(z.literal('').transform(() => undefined)),
     startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    endsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    noEndDate: z.boolean(),
+    endsAt: z.string().optional(),
     /** Target amount in TND (major units, free text); converted to minor at submit time. */
     targetAmountTnd: z.string().optional(),
     state: z.enum(['draft', 'active', 'closed']),
     visibleOnPublicPage: z.boolean(),
   })
-  .refine((d) => d.startsAt <= d.endsAt, {
-    message: 'startsAt must be before endsAt',
-    path: ['endsAt'],
+  .superRefine((d, ctx) => {
+    if (d.noEndDate) return;
+    if (!d.endsAt || !/^\d{4}-\d{2}-\d{2}$/.test(d.endsAt)) {
+      ctx.addIssue({ code: 'custom', message: 'End date required', path: ['endsAt'] });
+      return;
+    }
+    if (d.startsAt > d.endsAt) {
+      ctx.addIssue({ code: 'custom', message: 'startsAt must be before endsAt', path: ['endsAt'] });
+    }
   });
 type CampaignForm = z.infer<typeof campaignSchema>;
 
@@ -68,8 +75,16 @@ export default function CampaignsPage() {
 
   const cForm = useForm<CampaignForm>({
     resolver: zodResolver(campaignSchema),
-    defaultValues: { name: '', state: 'draft', visibleOnPublicPage: true, startsAt: '', endsAt: '' },
+    defaultValues: {
+      name: '',
+      state: 'draft',
+      visibleOnPublicPage: true,
+      startsAt: '',
+      endsAt: '',
+      noEndDate: false,
+    },
   });
+  const noEndDate = cForm.watch('noEndDate');
   const oForm = useForm<OccasionForm>({
     resolver: zodResolver(occasionSchema),
     defaultValues: { name: '', isHijriBased: false, recurring: false, periodStart: '', periodEnd: '' },
@@ -83,7 +98,7 @@ export default function CampaignsPage() {
         description: v.description || undefined,
         occasionId: v.occasionId || undefined,
         startsAt: v.startsAt,
-        endsAt: v.endsAt,
+        endsAt: v.noEndDate ? null : v.endsAt,
         targetAmountMinor: targetTnd > 0 ? tndToMinor(targetTnd) : undefined,
         currency: DEFAULT_CURRENCY,
         visibleOnPublicPage: v.visibleOnPublicPage,
@@ -157,8 +172,23 @@ export default function CampaignsPage() {
                 <DateInput id="cstart" {...cForm.register('startsAt')} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="cend">{t('campaigns.endsAt')}</Label>
-                <DateInput id="cend" {...cForm.register('endsAt')} />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="cend">{t('campaigns.endsAt')}</Label>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
+                      id="cnoend"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      {...cForm.register('noEndDate', {
+                        onChange: (e) => {
+                          if (e.target.checked) cForm.setValue('endsAt', '');
+                        },
+                      })}
+                    />
+                    {t('campaigns.noEndDate')}
+                  </label>
+                </div>
+                {!noEndDate ? <DateInput id="cend" {...cForm.register('endsAt')} /> : null}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="ctarget">
@@ -325,7 +355,8 @@ function CampaignCard({
   });
   const [editing, setEditing] = useState(false);
   const [startsAt, setStartsAt] = useState(c.startsAt.slice(0, 10));
-  const [endsAt, setEndsAt] = useState(c.endsAt.slice(0, 10));
+  const [noEndDate, setNoEndDate] = useState(!c.endsAt);
+  const [endsAt, setEndsAt] = useState(c.endsAt ? c.endsAt.slice(0, 10) : '');
   const [targetTnd, setTargetTnd] = useState(
     c.targetAmountMinor ? String(c.targetAmountMinor / 1000) : '',
   );
@@ -333,7 +364,7 @@ function CampaignCard({
     mutationFn: () =>
       updateCampaign(c.id, {
         startsAt,
-        endsAt,
+        endsAt: noEndDate ? null : endsAt,
         targetAmountMinor: targetTnd ? tndToMinor(Number(targetTnd)) : null,
       }),
     onSuccess: () => {
@@ -373,8 +404,24 @@ function CampaignCard({
               <DateInput value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
             </div>
             <div>
-              <Label>{t('campaigns.endsAt')}</Label>
-              <DateInput value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <Label>{t('campaigns.endsAt')}</Label>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={noEndDate}
+                    onChange={(e) => {
+                      setNoEndDate(e.target.checked);
+                      if (e.target.checked) setEndsAt('');
+                    }}
+                  />
+                  {t('campaigns.noEndDate')}
+                </label>
+              </div>
+              {!noEndDate ? (
+                <DateInput value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+              ) : null}
             </div>
           </div>
           <div>
@@ -388,7 +435,7 @@ function CampaignCard({
       )}
       <div className="mt-1 text-xs text-muted-foreground">
         <Calendar className="me-1 inline h-3 w-3" />
-        {formatDate(c.startsAt)} → {formatDate(c.endsAt)}
+        {formatDate(c.startsAt)} → {formatCampaignEnd(c.endsAt, t)}
         {c.occasion ? <span className="ms-2">· {c.occasion.name}</span> : null}
       </div>
       <div className="mt-3 space-y-1">
@@ -446,4 +493,9 @@ function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+}
+
+function formatCampaignEnd(endsAt: string | null, t: (k: string) => string): string {
+  if (!endsAt) return t('campaigns.openEnded');
+  return formatDate(endsAt);
 }

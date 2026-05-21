@@ -113,7 +113,7 @@ export interface PublicCampaign {
   name: string;
   description: string | null;
   startsAt: string;
-  endsAt: string;
+  endsAt: string | null;
   targetAmountMinor: number | null;
   collectedAmountMinor: number;
   distributedAmountMinor: number;

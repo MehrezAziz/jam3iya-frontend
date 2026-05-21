@@ -123,7 +123,7 @@
     "orgAddress": "Adresse",
     "mainDeptLocation": "Localisation du département principal",
     "orgAdmins": "Administrateurs",
-    "orgAdminsHint": "Réinitialisez le mot de passe si l'admin l'a oublié.",
+    "orgAdminsHint": "Mettez à jour les identifiants ou réinitialisez le mot de passe si l'admin l'a oublié.",
     "resetAdminPassword": "Réinitialiser le mot de passe",
     "resetPasswordButton": "Réinitialiser",
     "setCustomPassword": "Définir un mot de passe (min. 12 caractères)",
@@ -132,7 +132,17 @@
     "passwordResetDone": "Mot de passe mis à jour",
     "oneTimePasswordTitle": "Mot de passe à usage unique",
     "oneTimePasswordHint": "Transmettez-le de façon sécurisée. Il ne sera plus affiché.",
-    "newPassword": "Nouveau mot de passe"
+    "newPassword": "Nouveau mot de passe",
+    "updateAdminCredentials": "Mettre à jour les identifiants",
+    "updateAdminCredentialsHint": "Modifiez l'e-mail, le nom, le téléphone ou le mot de passe à tout moment.",
+    "saveAdminCredentials": "Enregistrer les identifiants",
+    "adminCredentialsUpdated": "Identifiants de l'administrateur mis à jour",
+    "adminLocale": "Langue de l'interface"
+  },
+  "datePicker": {
+    "placeholder": "Choisir une date",
+    "clear": "Effacer la date",
+    "title": "Choisir une date"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -524,9 +534,12 @@
     "description": "Description",
     "startsAt": "Début",
     "endsAt": "Fin",
+    "noEndDate": "Sans date de fin (en continu)",
+    "openEnded": "En continu",
     "periodStart": "Début période",
     "periodEnd": "Fin période",
     "target": "Objectif (millimes)",
+    "targetAmount": "Montant objectif",
     "occasion": "Occasion (optionnel)",
     "state": "État",
     "state_draft": "Brouillon",

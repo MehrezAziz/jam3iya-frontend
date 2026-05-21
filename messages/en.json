@@ -123,7 +123,7 @@
     "orgAddress": "Address",
     "mainDeptLocation": "Main department location",
     "orgAdmins": "Organization administrators",
-    "orgAdminsHint": "Reset the admin password if they forgot it. A new one-time password can be generated.",
+    "orgAdminsHint": "Update login credentials or reset the password if the admin forgot it.",
     "resetAdminPassword": "Reset password",
     "resetPasswordButton": "Reset password",
     "setCustomPassword": "Set a specific password (min. 12 characters)",
@@ -132,7 +132,17 @@
     "passwordResetDone": "Password updated",
     "oneTimePasswordTitle": "One-time password",
     "oneTimePasswordHint": "Share this securely with the administrator. It will not be shown again.",
-    "newPassword": "New password"
+    "newPassword": "New password",
+    "updateAdminCredentials": "Update login credentials",
+    "updateAdminCredentialsHint": "Change the admin email, name, phone, or password at any time.",
+    "saveAdminCredentials": "Save credentials",
+    "adminCredentialsUpdated": "Administrator credentials updated",
+    "adminLocale": "Interface language"
+  },
+  "datePicker": {
+    "placeholder": "Pick a date",
+    "clear": "Clear date",
+    "title": "Choose date"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -560,9 +570,12 @@
     "description": "Description",
     "startsAt": "Starts on",
     "endsAt": "Ends on",
+    "noEndDate": "No end date (ongoing)",
+    "openEnded": "Ongoing",
     "periodStart": "Period start",
     "periodEnd": "Period end",
     "target": "Target (millimes)",
+    "targetAmount": "Target amount",
     "occasion": "Occasion (optional)",
     "state": "State",
     "state_draft": "Draft",

@@ -8,7 +8,7 @@ export interface CampaignListEntry {
   description: string | null;
   occasionId: string | null;
   startsAt: string;
-  endsAt: string;
+  endsAt: string | null;
   targetAmountMinor: number | null;
   collectedAmountMinor: number;
   distributedAmountMinor: number;
@@ -38,7 +38,7 @@ export function createCampaign(input: {
   description?: string;
   occasionId?: string;
   startsAt: string;
-  endsAt: string;
+  endsAt?: string | null;
   targetAmountMinor?: number;
   currency?: string;
   visibleOnPublicPage?: boolean;
@@ -54,7 +54,7 @@ export function updateCampaign(
     description: string | null;
     occasionId: string | null;
     startsAt: string;
-    endsAt: string;
+    endsAt: string | null;
     targetAmountMinor: number | null;
     visibleOnPublicPage: boolean;
     state: CampaignState;

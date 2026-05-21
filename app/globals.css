@@ -61,3 +61,95 @@ body {
 * {
   border-color: var(--border);
 }
+
+/* react-day-picker — match app theme */
+.rdp-root {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+}
+
+/*
+ * DateInput: show real month/year <select>s only (library default overlays an
+ * invisible select on a duplicate caption label — styling dropdown broke that).
+ */
+.jam3iya-date-picker {
+  --rdp-dropdown-gap: 1rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.jam3iya-date-picker .rdp-root {
+  background: var(--background);
+  color: var(--foreground);
+  --rdp-accent-background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.jam3iya-date-picker .rdp-dropdowns {
+  gap: 1rem;
+}
+
+.jam3iya-date-picker .rdp-dropdown_root + .rdp-dropdown_root {
+  margin-inline-start: 0.25rem;
+}
+
+.jam3iya-date-picker .rdp-dropdown_root .rdp-caption_label {
+  display: none;
+}
+
+.jam3iya-date-picker .rdp-dropdown {
+  position: static;
+  inset: auto;
+  opacity: 1;
+  width: auto;
+  min-width: 5.5rem;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  appearance: auto;
+}
+
+.jam3iya-date-picker .rdp-dropdown option {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.jam3iya-date-picker .rdp-dropdown:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.jam3iya-date-picker .rdp-weekday {
+  color: var(--muted-foreground);
+}
+
+.jam3iya-date-picker .rdp-day_button {
+  color: var(--foreground);
+}
+
+.jam3iya-date-picker .rdp-day_button:hover {
+  background-color: var(--muted);
+}
+
+/* Native <select> popup follows OS theme unless color-scheme is set */
+.dark .jam3iya-date-picker {
+  color-scheme: dark;
+}
+
+.dark .jam3iya-date-picker .rdp-dropdown {
+  background-color: var(--background);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.dark .jam3iya-date-picker .rdp-dropdown option {
+  background-color: var(--background);
+  color: var(--foreground);
+}

@@ -178,7 +178,12 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
           </div>
           <div>
             <Label>{t('beneficiaries.dateOfBirth')}</Label>
-            <DateInput value={form.dateOfBirth ?? ''} onChange={(e) => set('dateOfBirth', e.target.value)} />
+            <DateInput
+              value={form.dateOfBirth ?? ''}
+              fromYear={1920}
+              toYear={new Date().getFullYear()}
+              onChange={(e) => set('dateOfBirth', e.target.value)}
+            />
           </div>
           <div>
             <Label>{t('beneficiaries.cin')}</Label>

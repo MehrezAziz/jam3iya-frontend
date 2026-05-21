@@ -140,7 +140,7 @@ function CampaignCard({ c, t }: { c: PublicCampaign; t: (k: string) => string })
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
         <Calendar className="me-1 inline h-3 w-3" />
-        {formatDate(c.startsAt)} → {formatDate(c.endsAt)}
+        {formatDate(c.startsAt)} → {c.endsAt ? formatDate(c.endsAt) : t('campaigns.openEnded')}
       </div>
       {c.description ? (
         <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{c.description}</p>

@@ -21,6 +21,7 @@ export interface PlatformOrgAdmin {
   email: string;
   fullName: string;
   phone: string | null;
+  locale: 'ar' | 'fr' | 'en';
   status: string;
   mustChangePassword: boolean;
   lastLoginAt: string | null;
@@ -104,5 +105,24 @@ export async function resetOrgAdminPassword(
   return api(`/platform/organizations/${orgId}/admins/${userId}/reset-password`, {
     method: 'POST',
     body: JSON.stringify(body ?? {}),
+  });
+}
+
+export interface UpdateOrgAdminInput {
+  email?: string;
+  fullName?: string;
+  phone?: string | null;
+  locale?: 'ar' | 'fr' | 'en';
+  newPassword?: string;
+}
+
+export async function updateOrgAdmin(
+  orgId: string,
+  userId: string,
+  body: UpdateOrgAdminInput,
+): Promise<PlatformOrgAdmin & { oneTimePassword: string | null }> {
+  return api(`/platform/organizations/${orgId}/admins/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
   });
 }

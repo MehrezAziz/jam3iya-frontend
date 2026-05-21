@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import {
   getPlatformOrganization,
   resetOrgAdminPassword,
+  updateOrgAdmin,
   type PlatformOrgDetail,
 } from '@/lib/api/platform';
 
@@ -41,6 +42,29 @@ export default function PlatformOrgDetailPage({ params }: { params: Promise<{ id
         toast.success(t('platform.passwordResetDone'));
         setResetResult(null);
       }
+      qc.invalidateQueries({ queryKey: ['platform', 'org', id] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: (vars: {
+      userId: string;
+      email: string;
+      fullName: string;
+      phone: string;
+      locale: 'ar' | 'fr' | 'en';
+      newPassword?: string;
+    }) =>
+      updateOrgAdmin(id, vars.userId, {
+        email: vars.email,
+        fullName: vars.fullName,
+        phone: vars.phone.trim() || null,
+        locale: vars.locale,
+        ...(vars.newPassword ? { newPassword: vars.newPassword } : {}),
+      }),
+    onSuccess: () => {
+      toast.success(t('platform.adminCredentialsUpdated'));
       qc.invalidateQueries({ queryKey: ['platform', 'org', id] });
     },
     onError: (err) => toast.error((err as Error).message),
@@ -78,6 +102,7 @@ export default function PlatformOrgDetailPage({ params }: { params: Promise<{ id
             org={o}
             t={t}
             resetMut={resetMut}
+            updateMut={updateMut}
             useCustom={useCustom}
             setUseCustom={setUseCustom}
             customPassword={customPassword}
@@ -151,6 +176,7 @@ function OrgAdminsCard({
   org,
   t,
   resetMut,
+  updateMut,
   useCustom,
   setUseCustom,
   customPassword,
@@ -159,6 +185,20 @@ function OrgAdminsCard({
   org: PlatformOrgDetail;
   t: (k: string) => string;
   resetMut: ReturnType<typeof useMutation<unknown, Error, { userId: string; newPassword?: string }>>;
+  updateMut: ReturnType<
+    typeof useMutation<
+      unknown,
+      Error,
+      {
+        userId: string;
+        email: string;
+        fullName: string;
+        phone: string;
+        locale: 'ar' | 'fr' | 'en';
+        newPassword?: string;
+      }
+    >
+  >;
   useCustom: boolean;
   setUseCustom: (v: boolean) => void;
   customPassword: string;
@@ -178,7 +218,81 @@ function OrgAdminsCard({
           <p className="text-sm text-muted-foreground">—</p>
         ) : (
           org.admins.map((admin) => (
-            <div key={admin.id} className="rounded-md border border-border p-4">
+            <OrgAdminPanel
+              key={admin.id}
+              admin={admin}
+              orgDefaultLanguage={org.defaultLanguage as 'ar' | 'fr' | 'en'}
+              t={t}
+              resetMut={resetMut}
+              updateMut={updateMut}
+              useCustom={useCustom}
+              setUseCustom={setUseCustom}
+              customPassword={customPassword}
+              setCustomPassword={setCustomPassword}
+            />
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrgAdminPanel({
+  admin,
+  orgDefaultLanguage,
+  t,
+  resetMut,
+  updateMut,
+  useCustom,
+  setUseCustom,
+  customPassword,
+  setCustomPassword,
+}: {
+  admin: PlatformOrgDetail['admins'][number];
+  orgDefaultLanguage: 'ar' | 'fr' | 'en';
+  t: (k: string) => string;
+  resetMut: ReturnType<typeof useMutation<unknown, Error, { userId: string; newPassword?: string }>>;
+  updateMut: ReturnType<
+    typeof useMutation<
+      unknown,
+      Error,
+      {
+        userId: string;
+        email: string;
+        fullName: string;
+        phone: string;
+        locale: 'ar' | 'fr' | 'en';
+        newPassword?: string;
+      }
+    >
+  >;
+  useCustom: boolean;
+  setUseCustom: (v: boolean) => void;
+  customPassword: string;
+  setCustomPassword: (v: string) => void;
+}) {
+  const [email, setEmail] = useState(admin.email);
+  const [fullName, setFullName] = useState(admin.fullName);
+  const [phone, setPhone] = useState(admin.phone ?? '');
+  const [locale, setLocale] = useState<'ar' | 'fr' | 'en'>(admin.locale ?? orgDefaultLanguage);
+  const [credentialPassword, setCredentialPassword] = useState('');
+
+  useEffect(() => {
+    setEmail(admin.email);
+    setFullName(admin.fullName);
+    setPhone(admin.phone ?? '');
+    setLocale(admin.locale ?? orgDefaultLanguage);
+  }, [admin.email, admin.fullName, admin.phone, admin.locale, orgDefaultLanguage]);
+
+  const credentialsDirty =
+    email !== admin.email ||
+    fullName !== admin.fullName ||
+    (phone || '') !== (admin.phone ?? '') ||
+    locale !== admin.locale ||
+    credentialPassword.length > 0;
+
+  return (
+            <div className="rounded-md border border-border p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="font-medium">{admin.fullName}</div>
@@ -199,6 +313,90 @@ function OrgAdminsCard({
                     ) : null}
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-4 space-y-3 border-t border-border pt-4">
+                <p className="text-sm font-medium">{t('platform.updateAdminCredentials')}</p>
+                <p className="text-xs text-muted-foreground">{t('platform.updateAdminCredentialsHint')}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor={`admin-email-${admin.id}`}>{t('platform.adminEmail')}</Label>
+                    <Input
+                      id={`admin-email-${admin.id}`}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`admin-name-${admin.id}`}>{t('platform.adminFullName')}</Label>
+                    <Input
+                      id={`admin-name-${admin.id}`}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`admin-phone-${admin.id}`}>{t('platform.adminPhone')}</Label>
+                    <Input
+                      id={`admin-phone-${admin.id}`}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`admin-locale-${admin.id}`}>{t('platform.adminLocale')}</Label>
+                    <select
+                      id={`admin-locale-${admin.id}`}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={locale}
+                      onChange={(e) => setLocale(e.target.value as 'ar' | 'fr' | 'en')}
+                    >
+                      <option value="ar">العربية</option>
+                      <option value="fr">Français</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor={`admin-pwd-update-${admin.id}`}>{t('platform.newPassword')}</Label>
+                    <Input
+                      id={`admin-pwd-update-${admin.id}`}
+                      type="text"
+                      autoComplete="new-password"
+                      value={credentialPassword}
+                      onChange={(e) => setCredentialPassword(e.target.value)}
+                      placeholder={t('common.optional')}
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={
+                    updateMut.isPending ||
+                    !credentialsDirty ||
+                    !email.trim() ||
+                    fullName.trim().length < 2 ||
+                    (credentialPassword.length > 0 && credentialPassword.length < 12)
+                  }
+                  onClick={() => {
+                    updateMut.mutate(
+                      {
+                        userId: admin.id,
+                        email: email.trim(),
+                        fullName: fullName.trim(),
+                        phone,
+                        locale,
+                        ...(credentialPassword ? { newPassword: credentialPassword } : {}),
+                      },
+                      {
+                        onSuccess: () => setCredentialPassword(''),
+                      },
+                    );
+                  }}
+                >
+                  {updateMut.isPending ? t('common.loading') : t('platform.saveAdminCredentials')}
+                </Button>
               </div>
 
               <div className="mt-4 space-y-3 border-t border-border pt-4">
@@ -244,10 +442,6 @@ function OrgAdminsCard({
                 </Button>
               </div>
             </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
   );
 }
 

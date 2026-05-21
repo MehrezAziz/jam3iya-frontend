@@ -707,7 +707,12 @@ function DependentForm({
         </div>
         <div>
           <Label>{t('beneficiaries.dateOfBirth')}</Label>
-          <DateInput value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+          <DateInput
+            value={dateOfBirth}
+            fromYear={1920}
+            toYear={new Date().getFullYear()}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+          />
         </div>
         <div>
           <Label>{t('beneficiaries.cin')}</Label>
@@ -801,7 +806,12 @@ function SpouseForm({
         </div>
         <div>
           <Label>{t('beneficiaries.dateOfBirth')}</Label>
-          <DateInput value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+          <DateInput
+            value={dateOfBirth}
+            fromYear={1920}
+            toYear={new Date().getFullYear()}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+          />
         </div>
         <div>
           <Label>{t('beneficiaries.cin')}</Label>
@@ -899,7 +909,12 @@ function ChildForm({
         </div>
         <div>
           <Label>{t('beneficiaries.dateOfBirth')}</Label>
-          <DateInput value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+          <DateInput
+            value={dateOfBirth}
+            fromYear={1920}
+            toYear={new Date().getFullYear()}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+          />
         </div>
         <div className="flex items-end gap-2">
           <input type="checkbox" checked={inSchool} onChange={(e) => setInSchool(e.target.checked)} className="h-4 w-4" />

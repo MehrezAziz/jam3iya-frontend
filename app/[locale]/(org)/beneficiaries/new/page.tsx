@@ -130,7 +130,12 @@ export default function NewBeneficiaryPage() {
 
             <div>
               <Label htmlFor="dateOfBirth">{t('beneficiaries.dateOfBirth')}</Label>
-              <DateInput id="dateOfBirth" {...form.register('dateOfBirth')} />
+              <DateInput
+                id="dateOfBirth"
+                fromYear={1920}
+                toYear={new Date().getFullYear()}
+                {...form.register('dateOfBirth')}
+              />
             </div>
 
             <div>

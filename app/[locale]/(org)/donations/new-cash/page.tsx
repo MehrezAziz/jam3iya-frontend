@@ -19,19 +19,23 @@ import { createCashDonation } from '@/lib/api/donations';
 import { searchDonors, type DonorSearchHit } from '@/lib/api/donors';
 import { listCampaigns, type CampaignListEntry } from '@/lib/api/campaigns';
 import { tndToMinor, DEFAULT_CURRENCY } from '@/lib/money';
-import { AvailableBalanceBanner } from '@/components/available-balance-banner';
-
 const COMMON_CATEGORIES = ['food', 'medicine', 'clothing', 'school_supplies', 'hygiene', 'blankets', 'furniture'];
 
+function toIsoDateLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function todayIsoDate(): string {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return toIsoDateLocal(new Date());
 }
 
 function minAllowedDate(): string {
   const d = new Date();
   d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+  return toIsoDateLocal(d);
 }
 
 const schema = z
@@ -116,6 +120,7 @@ export default function NewCashDonationPage() {
   const spendMode = form.watch('spendMode');
   const donorMode = form.watch('donorMode');
   const isAnonymous = form.watch('isAnonymous');
+  const receivedAt = form.watch('receivedAt');
   const donorsQ = useQuery({
     queryKey: ['donors-search', debouncedSearch],
     queryFn: () => searchDonors(debouncedSearch),
@@ -165,7 +170,6 @@ export default function NewCashDonationPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t('donations.newCash')}</h1>
-      <AvailableBalanceBanner />
       <Card>
         <CardHeader>
           <CardTitle>{t('donations.newCash')}</CardTitle>
@@ -292,7 +296,10 @@ export default function NewCashDonationPage() {
                   id="receivedAt"
                   min={minAllowedDate()}
                   max={todayIsoDate()}
-                  {...form.register('receivedAt')}
+                  value={receivedAt}
+                  onChange={(e) =>
+                    form.setValue('receivedAt', e.target.value, { shouldValidate: true, shouldDirty: true })
+                  }
                 />
                 {form.formState.errors.receivedAt && (
                   <p className="mt-1 text-xs text-destructive">{form.formState.errors.receivedAt.message}</p>

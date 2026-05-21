@@ -21,6 +21,7 @@ export default async function OrgLayout({
   return (
     <OrgAppShell
       user={{ fullName: user.fullName, email: user.email }}
+      organizationName={user.organization?.legalName}
       lockedDepartmentId={user.departmentId ?? null}
     >
       {children}

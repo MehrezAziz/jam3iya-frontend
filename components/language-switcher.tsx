@@ -103,14 +103,28 @@ export function LanguageSwitcher({ className, variant = 'dropdown' }: LanguageSw
   );
 }
 
-export function LanguageOptionList({ className }: { className?: string }) {
+export function LanguageOptionList({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  /** Compact inline pills (settings page). */
+  compact?: boolean;
+}) {
   const t = useTranslations();
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
   const router = useRouter();
 
   return (
-    <ul className={cn('grid gap-1 sm:grid-cols-3', className)} role="listbox" aria-label={t('locale.selectLanguage')}>
+    <ul
+      className={cn(
+        compact ? 'inline-flex flex-wrap items-center gap-1.5' : 'grid gap-1 sm:grid-cols-3',
+        className,
+      )}
+      role="listbox"
+      aria-label={t('locale.selectLanguage')}
+    >
       {LOCALE_OPTIONS.map((opt) => {
         const active = opt.value === locale;
         return (
@@ -118,7 +132,10 @@ export function LanguageOptionList({ className }: { className?: string }) {
             <Button
               type="button"
               variant={active ? 'default' : 'outline'}
-              className="w-full justify-center"
+              size={compact ? 'sm' : 'default'}
+              className={cn(
+                compact ? 'h-8 min-w-0 px-2.5 text-xs' : 'w-full justify-center',
+              )}
               onClick={() => {
                 if (opt.value !== locale) router.replace(pathname, { locale: opt.value });
               }}

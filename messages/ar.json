@@ -123,7 +123,7 @@
     "orgAddress": "العنوان",
     "mainDeptLocation": "موقع القسم الرئيسي",
     "orgAdmins": "مسؤولو الجمعية",
-    "orgAdminsHint": "إعادة تعيين كلمة المرور إذا نسيها المسؤول.",
+    "orgAdminsHint": "حدّث بيانات الدخول أو أعد تعيين كلمة المرور إذا نسيها المسؤول.",
     "resetAdminPassword": "إعادة تعيين كلمة المرور",
     "resetPasswordButton": "إعادة التعيين",
     "setCustomPassword": "تعيين كلمة مرور محددة (12 حرفاً على الأقل)",
@@ -132,7 +132,17 @@
     "passwordResetDone": "تم تحديث كلمة المرور",
     "oneTimePasswordTitle": "كلمة مرور لمرة واحدة",
     "oneTimePasswordHint": "شاركها بشكل آمن. لن تُعرض مرة أخرى.",
-    "newPassword": "كلمة المرور الجديدة"
+    "newPassword": "كلمة المرور الجديدة",
+    "updateAdminCredentials": "تحديث بيانات الدخول",
+    "updateAdminCredentialsHint": "غيّر البريد أو الاسم أو الهاتف أو كلمة المرور في أي وقت.",
+    "saveAdminCredentials": "حفظ بيانات الدخول",
+    "adminCredentialsUpdated": "تم تحديث بيانات المسؤول",
+    "adminLocale": "لغة الواجهة"
+  },
+  "datePicker": {
+    "placeholder": "اختر تاريخاً",
+    "clear": "مسح التاريخ",
+    "title": "اختيار التاريخ"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -524,9 +534,12 @@
     "description": "الوصف",
     "startsAt": "تبدأ في",
     "endsAt": "تنتهي في",
+    "noEndDate": "بدون تاريخ نهاية (مستمرة)",
+    "openEnded": "مستمرة",
     "periodStart": "بداية الفترة",
     "periodEnd": "نهاية الفترة",
     "target": "الهدف (ملّيم)",
+    "targetAmount": "المبلغ المستهدف",
     "occasion": "المناسبة (اختيارية)",
     "state": "الحالة",
     "state_draft": "مسودّة",
