@@ -106,7 +106,7 @@ export default function BillPrintPage() {
 
       <hr className="my-5 border-gray-300" />
 
-      <div className="flex justify-center print:block">
+      <div className="flex w-full justify-center print:flex print:justify-center">
         {qrDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -114,15 +114,18 @@ export default function BillPrintPage() {
             alt=""
             width={160}
             height={160}
-            className="rounded print:max-w-none"
+            className="mx-auto block rounded print:mx-auto print:block"
           />
         ) : (
-          <div className="h-40 w-40 animate-pulse rounded bg-gray-100" />
+          <div className="mx-auto h-40 w-40 animate-pulse rounded bg-gray-100" />
         )}
       </div>
 
       <section className="mt-6 space-y-2 text-sm">
         <Row label={t('bills.recipient')} value={recipient} />
+        {donation?.id ? (
+          <Row label={t('donations.donationId')} value={donation.id} mono />
+        ) : null}
         <Row
           label={t('bills.issuedAt')}
           value={new Date(b.issuedAt).toLocaleString(undefined, {
