@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { HeartHandshake, ShieldCheck, ScrollText } from 'lucide-react';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -19,6 +20,7 @@ function LandingInner() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="text-xl font-bold tracking-tight text-primary">{t('app.name')}</div>
           <nav className="flex items-center gap-2">
+            <LanguageSwitcher />
             <Button asChild variant="ghost" size="sm">
               <Link href="/login">{t('auth.login')}</Link>
             </Button>

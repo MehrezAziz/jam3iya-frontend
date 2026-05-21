@@ -3,6 +3,12 @@
     "name": "Jam3iya",
     "tagline": "Plateforme de gestion des associations caritatives, sécurisée et transparente"
   },
+  "locale": {
+    "selectLanguage": "Choisir la langue",
+    "ar": "Arabe",
+    "en": "Anglais",
+    "fr": "Français"
+  },
   "common": {
     "loading": "Chargement...",
     "save": "Enregistrer",
@@ -558,6 +564,8 @@
   },
   "settings": {
     "subtitle": "Profil de l'association et liste des départements",
+    "interfaceLanguage": "Langue de l'interface",
+    "interfaceLanguageHint": "Choisissez la langue des menus, libellés et messages de l'application.",
     "orgProfile": "Profil de l'association",
     "orgProfileHint": "Identité et paramètres par défaut hérités par chaque département",
     "legalName": "Dénomination légale",

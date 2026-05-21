@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { Building2, KeyRound, Loader2, MapPin, Users } from 'lucide-react';
+import { Building2, KeyRound, Languages, Loader2, MapPin, Users } from 'lucide-react';
+import { LanguageOptionList } from '@/components/language-switcher';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,7 @@ export default function SettingsPage() {
         <p className="text-sm text-destructive">{(error as Error).message}</p>
       ) : (
         <>
+          <InterfaceLanguageCard t={t} />
           {orgQ.data ? <OrgProfileCard org={orgQ.data} t={t} /> : null}
           <BeneficiaryPinCard pinConfigured={pinStatusQ.data?.pinConfigured ?? false} t={t} />
           {mainDeptQ.data ? (
@@ -128,6 +130,23 @@ export default function SettingsPage() {
         </>
       )}
     </div>
+  );
+}
+
+function InterfaceLanguageCard({ t }: { t: (k: string) => string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Languages className="h-4 w-4" />
+          {t('settings.interfaceLanguage')}
+        </CardTitle>
+        <CardDescription>{t('settings.interfaceLanguageHint')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <LanguageOptionList />
+      </CardContent>
+    </Card>
   );
 }
 

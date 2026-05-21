@@ -3,6 +3,12 @@
     "name": "Jam3iya",
     "tagline": "Secure, transparent charity management platform"
   },
+  "locale": {
+    "selectLanguage": "Select language",
+    "ar": "Arabic",
+    "en": "English",
+    "fr": "French"
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -594,6 +600,8 @@
   },
   "settings": {
     "subtitle": "Organization profile and department list",
+    "interfaceLanguage": "Interface language",
+    "interfaceLanguageHint": "Choose the language used for menus, labels, and messages in the application.",
     "orgProfile": "Organization profile",
     "orgProfileHint": "Identity and locale defaults inherited by every department",
     "legalName": "Legal name",
