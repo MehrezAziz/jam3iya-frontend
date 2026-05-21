@@ -115,7 +115,6 @@ export default function SettingsPage() {
       ) : (
         <>
           <InterfaceLanguageCard t={t} />
-          {orgQ.data ? <OrgLogoCard org={orgQ.data} t={t} onUpdated={() => qc.invalidateQueries({ queryKey: ['organization'] })} /> : null}
           {orgQ.data ? <OrgProfileCard org={orgQ.data} t={t} /> : null}
           <BeneficiaryPinCard pinConfigured={pinStatusQ.data?.pinConfigured ?? false} t={t} />
           {mainDeptQ.data ? (
@@ -135,6 +134,13 @@ export default function SettingsPage() {
             />
           ) : null}
           <DepartmentsList departments={deptsQ.data ?? []} t={t} />
+          {orgQ.data ? (
+            <OrgLogoCard
+              org={orgQ.data}
+              t={t}
+              onUpdated={() => qc.invalidateQueries({ queryKey: ['organization'] })}
+            />
+          ) : null}
         </>
       )}
     </div>

@@ -610,14 +610,20 @@
     "activeCampaigns": "Ongoing campaigns",
     "activeCampaignsHint": "You can support any of these campaigns.",
     "closedCampaigns": "Past campaigns",
-    "footer": "Numbers are aggregated and refreshed periodically. No individual personal data is exposed. Bookkeeping is auditable on request."
+    "footer": "Numbers are aggregated and refreshed periodically. No individual personal data is exposed. Bookkeeping is auditable on request.",
+    "donationVerify": {
+      "title": "Donation verified",
+      "subtitle": "This donation was recorded successfully by the organization below.",
+      "issuedOn": "Receipt issued on {date}",
+      "footer": "Scan the QR code on your paper receipt to open this page. No login required."
+    }
   },
   "settings": {
     "subtitle": "Organization profile and department list",
     "interfaceLanguage": "Interface language",
     "interfaceLanguageHint": "Choose the language used for menus, labels, and messages in the application.",
     "orgLogo": "Organization logo",
-    "orgLogoHint": "Shown at the top left on printed donation receipts. JPEG, PNG, or WebP, max 2 MB.",
+    "orgLogoHint": "Shown on printed donation receipts and the public verification page. JPEG, PNG, or WebP, max 2 MB.",
     "uploadLogo": "Upload logo",
     "removeLogo": "Remove logo",
     "logoSaved": "Logo updated.",

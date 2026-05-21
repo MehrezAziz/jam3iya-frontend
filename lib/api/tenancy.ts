@@ -127,6 +127,46 @@ export function verifyBeneficiaryAccessPin(pin: string): Promise<{ expiresAt: st
   });
 }
 
+export interface PublicDonationVerification {
+  verified: true;
+  organization: {
+    legalName: string;
+    slug: string;
+    fiscalId: string | null;
+    address: string | null;
+    phone: string | null;
+    website: string | null;
+    defaultCurrency: string;
+    hasLogo: boolean;
+  };
+  donation: {
+    id: string;
+    amountMinor: number;
+    currency: string;
+    receivedAt: string;
+    kind: string;
+    isAnonymous: boolean;
+  };
+  receipt: {
+    issuedAt: string;
+    number: string;
+  };
+}
+
+export function publicDonationVerification(
+  slug: string,
+  donationId: string,
+): Promise<PublicDonationVerification> {
+  return api(
+    `/public/orgs/${encodeURIComponent(slug)}/donations/${encodeURIComponent(donationId)}`,
+  );
+}
+
+/** Public org logo (no auth). */
+export function publicOrganizationLogoUrl(slug: string): string {
+  return `/api/public/orgs/${encodeURIComponent(slug)}/logo`;
+}
+
 export function publicOrg(slug: string): Promise<{
   id: string;
   legalName: string;

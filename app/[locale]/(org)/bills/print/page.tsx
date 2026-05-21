@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
 import { getBill } from '@/lib/api/bills';
 import { organizationLogoUrl } from '@/lib/api/tenancy';
 import { formatTndMinor } from '@/lib/utils';
@@ -19,8 +20,13 @@ function kindLabel(kind: string, t: (k: string) => string): string {
   return map[kind] ?? kind;
 }
 
+function donationVerifyUrl(origin: string, locale: string, orgSlug: string, donationId: string): string {
+  return `${origin}/${locale}/public/${encodeURIComponent(orgSlug)}/donations/${encodeURIComponent(donationId)}`;
+}
+
 export default function BillPrintPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const params = useSearchParams();
   const id = params.get('id') ?? '';
 
@@ -30,12 +36,42 @@ export default function BillPrintPage() {
     enabled: !!id,
   });
 
+  const verifyUrl = useMemo(() => {
+    if (!q.data?.linkedDonation?.id || !q.data.organization.slug) return null;
+    const origin =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_WEB_URL ?? '');
+    if (!origin) return null;
+    return donationVerifyUrl(origin, locale, q.data.organization.slug, q.data.linkedDonation.id);
+  }, [q.data, locale]);
+
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
   useEffect(() => {
-    if (q.data) {
+    if (!verifyUrl) {
+      setQrDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(verifyUrl, { width: 200, margin: 1, errorCorrectionLevel: 'M' })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [verifyUrl]);
+
+  useEffect(() => {
+    if (q.data && qrDataUrl) {
       const timer = setTimeout(() => window.print(), 400);
       return () => clearTimeout(timer);
     }
-  }, [q.data]);
+  }, [q.data, qrDataUrl]);
 
   if (!id) return <p className="p-8 text-sm">{t('bills.missingId')}</p>;
   if (q.isLoading) return <p className="p-8 text-sm">{t('common.loading')}</p>;
@@ -46,39 +82,44 @@ export default function BillPrintPage() {
   const recipient = donation?.isAnonymous
     ? t('donations.anonymous')
     : ((b.recipientSnapshot?.name as string | undefined) ?? donation?.donorNameSnapshot ?? '—');
-  const billRef = `${b.series}-${b.yearIssued}-${b.number}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(b.id)}`;
 
   const logoSrc = b.organization.logoFileId ? organizationLogoUrl() : null;
 
   return (
     <div className="mx-auto max-w-md p-8 text-black print:p-4">
-      <header className="relative min-h-28 border-b border-gray-300 pb-4">
+      <header className="text-center">
+        <h1 className="text-xl font-bold text-emerald-700 print:text-emerald-800">{b.organization.legalName}</h1>
+        {b.organization.fiscalId ? (
+          <p className="mt-1 text-sm text-gray-800">
+            {t('bills.fiscalId')}: {b.organization.fiscalId}
+          </p>
+        ) : null}
         {logoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoSrc}
             alt=""
-            className="absolute start-0 top-0 h-28 w-28 object-contain print:h-28 print:w-28"
+            className="mx-auto mt-4 h-24 w-24 object-contain print:h-24 print:w-24"
           />
         ) : null}
-        <div className="flex min-h-28 w-full flex-col items-center justify-center text-center">
-          <h1 className="text-xl font-bold">{b.organization.legalName}</h1>
-          {b.organization.fiscalId ? (
-            <p className="text-sm text-gray-700">
-              {t('bills.fiscalId')}: {b.organization.fiscalId}
-            </p>
-          ) : null}
-          <p className="mt-2 text-base font-semibold">{t('bills.receiptTitle')}</p>
-          <p className="font-mono text-sm">{billRef}</p>
-        </div>
       </header>
 
-      <div className="mt-4 flex justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={qrUrl} alt="" width={120} height={120} className="rounded" />
+      <hr className="my-5 border-gray-300" />
+
+      <div className="flex justify-center print:block">
+        {qrDataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={qrDataUrl}
+            alt=""
+            width={160}
+            height={160}
+            className="rounded print:max-w-none"
+          />
+        ) : (
+          <div className="h-40 w-40 animate-pulse rounded bg-gray-100" />
+        )}
       </div>
-      <p className="text-center font-mono text-xs text-gray-600">{b.id}</p>
 
       <section className="mt-6 space-y-2 text-sm">
         <Row label={t('bills.recipient')} value={recipient} />
@@ -98,9 +139,6 @@ export default function BillPrintPage() {
         ) : null}
         {donation?.campaignName ? (
           <Row label={t('donations.campaign')} value={donation.campaignName} />
-        ) : null}
-        {donation?.id ? (
-          <Row label={t('donations.donationId')} value={donation.id} mono />
         ) : null}
       </section>
     </div>

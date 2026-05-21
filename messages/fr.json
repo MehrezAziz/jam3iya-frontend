@@ -574,14 +574,20 @@
     "activeCampaigns": "Campagnes en cours",
     "activeCampaignsHint": "Vous pouvez soutenir l'une de ces campagnes.",
     "closedCampaigns": "Campagnes passées",
-    "footer": "Les chiffres sont agrégés et rafraîchis régulièrement. Aucune donnée personnelle individuelle n'est exposée."
+    "footer": "Les chiffres sont agrégés et rafraîchis régulièrement. Aucune donnée personnelle individuelle n'est exposée.",
+    "donationVerify": {
+      "title": "Don vérifié",
+      "subtitle": "Ce don a bien été enregistré par l'organisation ci-dessous.",
+      "issuedOn": "Reçu émis le {date}",
+      "footer": "Scannez le QR code sur votre reçu papier pour ouvrir cette page. Aucune connexion requise."
+    }
   },
   "settings": {
     "subtitle": "Profil de l'association et liste des départements",
     "interfaceLanguage": "Langue de l'interface",
     "interfaceLanguageHint": "Choisissez la langue des menus, libellés et messages de l'application.",
     "orgLogo": "Logo de l'association",
-    "orgLogoHint": "Affiché en haut à gauche sur les reçus de don imprimés. JPEG, PNG ou WebP, max. 2 Mo.",
+    "orgLogoHint": "Affiché sur les reçus imprimés et la page publique de vérification. JPEG, PNG ou WebP, max. 2 Mo.",
     "uploadLogo": "Téléverser le logo",
     "removeLogo": "Supprimer le logo",
     "logoSaved": "Logo mis à jour.",
