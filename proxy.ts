@@ -52,7 +52,8 @@ export default async function proxy(request: NextRequest) {
           if (k === 'httponly') opts.httpOnly = true;
           else if (k === 'secure') opts.secure = true;
           else if (k === 'path' && v) opts.path = v;
-          else if (k === 'domain' && v) opts.domain = v;
+          // Host-only cookie (no Domain) — works for jam3iya.org and www.
+          else if (k === 'domain') continue;
           else if (k === 'max-age' && v) opts.maxAge = Number.parseInt(v, 10);
           else if (k === 'samesite' && v) opts.sameSite = v.toLowerCase() as 'lax' | 'strict' | 'none';
         }

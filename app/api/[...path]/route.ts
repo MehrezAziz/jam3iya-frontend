@@ -4,6 +4,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 type RouteCtx = { params: Promise<{ path: string[] }> };
 
+/** Host-only cookies work for both jam3iya.org and www when Domain is omitted. */
+function normalizeSetCookieForBrowser(raw: string): string {
+  return raw
+    .split(';')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && !p.toLowerCase().startsWith('domain='))
+    .join('; ');
+}
+
 /**
  * Proxy /api/* to the Nest backend and forward Set-Cookie headers.
  * next.config rewrites often drop auth cookies in production Docker builds.
@@ -19,6 +28,8 @@ async function proxyToBackend(req: NextRequest, { params }: RouteCtx): Promise<N
     if (lower === 'host' || lower === 'connection' || lower === 'content-length') return;
     headers.set(key, value);
   });
+  const cookie = req.headers.get('cookie');
+  if (cookie) headers.set('cookie', cookie);
 
   const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
   const backendRes = await fetch(target, {
@@ -44,7 +55,7 @@ async function proxyToBackend(req: NextRequest, { params }: RouteCtx): Promise<N
   if (setCookies.length > 0) {
     resHeaders.delete('set-cookie');
     for (const cookie of setCookies) {
-      resHeaders.append('Set-Cookie', cookie);
+      resHeaders.append('Set-Cookie', normalizeSetCookieForBrowser(cookie));
     }
   }
 

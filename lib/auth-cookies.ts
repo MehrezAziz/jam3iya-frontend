@@ -25,7 +25,8 @@ function parseSetCookieHeader(header: string): {
     if (key === 'httponly') options.httpOnly = true;
     else if (key === 'secure') options.secure = true;
     else if (key === 'path' && val) options.path = val;
-    else if (key === 'domain' && val) options.domain = val;
+    // Omit Domain — host-only cookies work for apex + www via the site proxy.
+    else if (key === 'domain') continue;
     else if (key === 'max-age' && val) options.maxAge = Number.parseInt(val, 10);
     else if (key === 'samesite' && val) {
       options.sameSite = val.toLowerCase() as 'lax' | 'strict' | 'none';

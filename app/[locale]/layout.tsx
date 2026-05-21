@@ -18,6 +18,10 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'Jam3iya',
   description: 'Multi-tenant charity management platform for Tunisia',
+  icons: {
+    icon: [{ url: '/icon.png', type: 'image/png' }],
+    apple: [{ url: '/icon.png', type: 'image/png' }],
+  },
 };
 
 export function generateStaticParams() {
