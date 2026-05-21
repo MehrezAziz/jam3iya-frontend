@@ -275,7 +275,7 @@ export default function CampaignsPage() {
           ) : campaignsQ.data && campaignsQ.data.length > 0 ? (
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {campaignsQ.data.map((c) => (
-                <CampaignCard key={c.id} c={c} t={t} onUpdated={() => qc.invalidateQueries({ queryKey: ['campaigns'] })} />
+                <CampaignCard key={c.id} c={c} onUpdated={() => qc.invalidateQueries({ queryKey: ['campaigns'] })} />
               ))}
             </ul>
           ) : (
@@ -380,13 +380,12 @@ export default function CampaignsPage() {
 
 function CampaignCard({
   c,
-  t,
   onUpdated,
 }: {
   c: CampaignListEntry;
-  t: (k: string) => string;
   onUpdated: () => void;
 }) {
+  const t = useTranslations();
   const [showDonations, setShowDonations] = useState(false);
   const donationsQ = useQuery({
     queryKey: ['campaign-donations', c.id],
