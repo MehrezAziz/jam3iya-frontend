@@ -51,6 +51,8 @@
     "phone": "Phone",
     "pseudo": "Pseudonym (optional)",
     "logout": "Sign out",
+    "logoutConfirmTitle": "Sign out of Jam3iya?",
+    "logoutConfirmHint": "You will need to sign in again to access this account.",
     "twoFactorSetupTitle": "Enable two-factor authentication",
     "twoFactorSetupHint": "Scan the QR with your authenticator app (Google Authenticator, Authy, ...) then enter the 6-digit code",
     "twoFactorConfirm": "Confirm",

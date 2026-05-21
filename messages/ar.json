@@ -51,6 +51,8 @@
     "phone": "رقم الهاتف",
     "pseudo": "الاسم المستعار (اختياري)",
     "logout": "تسجيل الخروج",
+    "logoutConfirmTitle": "هل تريد تسجيل الخروج من Jam3iya؟",
+    "logoutConfirmHint": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى هذا الحساب.",
     "twoFactorSetupTitle": "تفعيل التحقق بخطوتين",
     "twoFactorSetupHint": "امسح رمز QR بتطبيق المصادقة (Google Authenticator، Authy، ...) ثم أدخل الرمز المكوّن من ٦ أرقام",
     "twoFactorConfirm": "تأكيد",

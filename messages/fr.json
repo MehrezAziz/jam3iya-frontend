@@ -51,6 +51,8 @@
     "phone": "Téléphone",
     "pseudo": "Pseudonyme (optionnel)",
     "logout": "Se déconnecter",
+    "logoutConfirmTitle": "Se déconnecter de Jam3iya ?",
+    "logoutConfirmHint": "Vous devrez vous reconnecter pour accéder à ce compte.",
     "twoFactorSetupTitle": "Activer la double authentification",
     "twoFactorSetupHint": "Scannez le QR avec votre application d'authentification (Google Authenticator, Authy, ...) puis saisissez le code à 6 chiffres",
     "twoFactorConfirm": "Confirmer",

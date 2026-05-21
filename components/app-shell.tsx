@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { logout } from '@/lib/api/auth';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 interface NavItem {
   href: string;
@@ -109,6 +110,8 @@ export function AppShell({
   const nav = isPlatformAdmin ? PLATFORM_NAV : kind === 'staff' ? STAFF_NAV : DONOR_NAV;
   const headerTitle = brandTitle?.trim() || t('app.name');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -123,12 +126,20 @@ export function AppShell({
     };
   }, [mobileOpen]);
 
-  async function onLogout() {
+  function openLogoutDialog() {
+    setLogoutOpen(true);
+  }
+
+  async function confirmLogout() {
+    setLoggingOut(true);
     try {
       await logout();
+      setLogoutOpen(false);
       router.push('/login');
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setLoggingOut(false);
     }
   }
 
@@ -138,7 +149,7 @@ export function AppShell({
         <div className="font-medium text-foreground">{user.fullName}</div>
         <div>{user.email}</div>
       </div>
-      <Button variant="outline" size="sm" className="w-full" onClick={onLogout}>
+      <Button variant="outline" size="sm" className="w-full" onClick={openLogoutDialog}>
         <LogOut className="h-4 w-4" />
         {t('auth.logout')}
       </Button>
@@ -222,13 +233,25 @@ export function AppShell({
           <DualDateHeader className="mx-auto hidden flex-1 md:block md:mx-0" />
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={onLogout}>
+            <Button variant="ghost" size="sm" className="md:hidden" onClick={openLogoutDialog}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </header>
         <main className="flex-1 bg-muted/30 p-4 sm:p-6 print:bg-white print:p-0">{children}</main>
       </div>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title={t('auth.logoutConfirmTitle')}
+        description={t('auth.logoutConfirmHint')}
+        confirmLabel={t('auth.logout')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        loading={loggingOut}
+        onConfirm={confirmLogout}
+        onCancel={() => (loggingOut ? undefined : setLogoutOpen(false))}
+      />
     </div>
   );
 }
