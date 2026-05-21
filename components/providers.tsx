@@ -6,8 +6,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { refresh } from '@/lib/api/auth';
 
+function hasRefreshCookie(): boolean {
+  return typeof document !== 'undefined' && document.cookie.includes('refresh_token=');
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
+    if (!hasRefreshCookie()) return;
     refresh().catch(() => undefined);
   }, []);
   const [client] = useState(
