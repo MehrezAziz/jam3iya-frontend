@@ -488,6 +488,8 @@
     "kind_mixed": "مختلط (نقدي + عيني)",
     "campaign": "الحملة (اختيارية)",
     "noCampaign": "— بدون حملة —",
+    "campaignAvailable": "الرصيد النقدي المتاح للحملة",
+    "campaignAvailableHint": "ما جُمع لهذه الحملة ناقص التوزيعات النقدية المسجّلة عليها.",
     "plannedAt": "المبرمج في",
     "deliveredAt": "تمّ التسليم في",
     "createdAt": "أُنشئ في",

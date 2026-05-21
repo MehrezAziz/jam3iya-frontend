@@ -92,7 +92,10 @@ function Field({
   label,
   as: InputComponent = Input,
   ...props
-}: { label: string; as?: typeof Input } & React.ComponentProps<typeof Input>) {
+}: {
+  label: string;
+  as?: React.ComponentType<React.ComponentProps<typeof Input>>;
+} & React.ComponentProps<typeof Input>) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>

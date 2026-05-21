@@ -524,6 +524,8 @@
     "kind_mixed": "Mixed (cash + goods)",
     "campaign": "Campaign (optional)",
     "noCampaign": "— No campaign —",
+    "campaignAvailable": "Campaign cash available",
+    "campaignAvailableHint": "Collected for this campaign minus cash already distributed under it.",
     "plannedAt": "Planned for",
     "deliveredAt": "Delivered at",
     "createdAt": "Created at",

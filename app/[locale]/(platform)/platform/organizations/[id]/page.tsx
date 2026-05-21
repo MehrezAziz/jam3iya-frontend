@@ -54,14 +54,14 @@ export default function PlatformOrgDetailPage({ params }: { params: Promise<{ id
       userId: string;
       email: string;
       fullName: string;
-      phone: string;
+      phone?: string | null;
       locale: 'ar' | 'fr' | 'en';
       newPassword?: string;
     }) =>
       updateOrgAdmin(id, vars.userId, {
         email: vars.email,
         fullName: vars.fullName,
-        phone: vars.phone.trim() || null,
+        phone: vars.phone?.trim() ? vars.phone.trim() : null,
         locale: vars.locale,
         ...(vars.newPassword ? { newPassword: vars.newPassword } : {}),
       }),
@@ -195,7 +195,7 @@ function OrgAdminsCard({
         userId: string;
         email: string;
         fullName: string;
-        phone: string;
+        phone?: string | null;
         locale: 'ar' | 'fr' | 'en';
         newPassword?: string;
       }
@@ -262,7 +262,7 @@ function OrgAdminPanel({
         userId: string;
         email: string;
         fullName: string;
-        phone: string;
+        phone?: string | null;
         locale: 'ar' | 'fr' | 'en';
         newPassword?: string;
       }

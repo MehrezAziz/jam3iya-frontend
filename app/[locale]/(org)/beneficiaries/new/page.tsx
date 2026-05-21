@@ -17,7 +17,7 @@ import { DateInput } from '@/components/ui/date-input';
 import { PhoneInput } from '@/components/phone-input';
 import { createBeneficiary } from '@/lib/api/beneficiaries';
 import { normalizeCinInput, optionalCinSchema } from '@/lib/cin';
-import { optionalPhoneSchema } from '@/lib/phone';
+import { optionalPhoneFormSchema } from '@/lib/phone';
 import { getMainDepartment, listDepartments, type Department } from '@/lib/api/tenancy';
 import { useDepartmentScope } from '@/lib/department-scope';
 import { listGovernorates, listDelegations, type Governorate, type Delegation } from '@/lib/api/geo';
@@ -29,7 +29,7 @@ const schema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed', 'separated']),
   cin: z.string().regex(/^\d{8}$/).optional().or(z.literal('')),
-  phone: optionalPhoneSchema,
+  phone: optionalPhoneFormSchema,
   address: z.string().max(500).optional(),
   region: z.string().max(120).optional(),
   city: z.string().max(120).optional(),
@@ -252,7 +252,11 @@ function Field({
   required,
   as: InputComponent = Input,
   ...props
-}: { label: string; required?: boolean; as?: typeof Input } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: {
+  label: string;
+  required?: boolean;
+  as?: React.ComponentType<React.InputHTMLAttributes<HTMLInputElement>>;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
       <Label htmlFor={props.name as string}>

@@ -488,6 +488,8 @@
     "kind_mixed": "Mixte (espèces + biens)",
     "campaign": "Campagne (optionnelle)",
     "noCampaign": "— Aucune campagne —",
+    "campaignAvailable": "Fonds campagne disponibles",
+    "campaignAvailableHint": "Montant collecté pour cette campagne moins les distributions déjà effectuées.",
     "plannedAt": "Prévue le",
     "deliveredAt": "Livrée le",
     "createdAt": "Créée le",

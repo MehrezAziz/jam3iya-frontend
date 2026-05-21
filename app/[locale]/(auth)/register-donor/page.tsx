@@ -1,6 +1,7 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import type { ComponentType } from 'react';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
@@ -24,19 +25,36 @@ const schema = z.object({
   password: z.string().min(12),
 });
 
-type FormData = z.infer<typeof schema>;
+type FormValues = {
+  organizationSlug: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  pseudo?: string;
+  fiscalId?: string;
+};
 
 export default function RegisterDonorPage() {
   const t = useTranslations();
   const router = useRouter();
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: { organizationSlug: 'demo' },
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema) as Resolver<FormValues>,
+    defaultValues: {
+      organizationSlug: 'demo',
+      fullName: '',
+      email: '',
+      phone: '',
+      password: '',
+      pseudo: '',
+      fiscalId: '',
+    },
   });
 
-  async function onSubmit(values: FormData) {
+  async function onSubmit(values: FormValues) {
     try {
-      await registerDonor({ ...values, locale: 'ar' });
+      const parsed = schema.parse(values);
+      await registerDonor({ ...parsed, locale: 'ar' });
       toast.success(t('common.successCreated'));
       router.push('/me/donations');
     } catch (err) {
@@ -83,7 +101,10 @@ function Field({
   label,
   as: InputComponent = Input,
   ...props
-}: { label: string; as?: typeof Input } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: {
+  label: string;
+  as?: ComponentType<React.InputHTMLAttributes<HTMLInputElement>>;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={props.name as string}>{label}</Label>

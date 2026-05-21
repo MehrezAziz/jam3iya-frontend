@@ -11,17 +11,18 @@ export function isValidPhone8(digits: string): boolean {
   return /^\d{8}$/.test(digits);
 }
 
-export const optionalPhoneSchema = z
+/** Form field: always a string ('' = empty). Validates 8 digits when non-empty. */
+export const optionalPhoneFormSchema = z
   .string()
-  .optional()
-  .or(z.literal(''))
-  .transform((s) => {
-    const digits = normalizePhoneInput(s ?? '');
-    return digits.length > 0 ? digits : undefined;
-  })
-  .refine((v) => v === undefined || isValidPhone8(v), {
+  .transform((s) => normalizePhoneInput(s))
+  .refine((digits) => digits.length === 0 || isValidPhone8(digits), {
     message: 'Phone must be exactly 8 digits',
   });
+
+/** API payload: undefined when empty. */
+export const optionalPhoneSchema = optionalPhoneFormSchema.transform((digits) =>
+  digits.length > 0 ? digits : undefined,
+);
 
 export const requiredPhoneSchema = z
   .string()

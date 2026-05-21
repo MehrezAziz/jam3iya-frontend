@@ -97,11 +97,22 @@ export default function NewDistributionPage() {
     setLines((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)) as Line[]);
   }
 
+  const selectedCampaign = campaignsQ.data?.find((c) => c.id === campaignId);
+  const campaignAvailableMinor =
+    selectedCampaign != null
+      ? Math.max(
+          0,
+          selectedCampaign.collectedAmountMinor - selectedCampaign.distributedAmountMinor,
+        )
+      : null;
+
   const totalCashMinor = lines
     .filter((l): l is CashLine => l.lineKind === 'cash')
     .reduce((sum, l) => sum + tndToMinor(l.amountTnd), 0);
-  const availableBalanceMinor = statsQ.data?.availableBalanceMinor ?? 0;
-  const exceedsBalance = totalCashMinor > availableBalanceMinor;
+  const departmentBalanceMinor = statsQ.data?.availableBalanceMinor ?? 0;
+  const effectiveAvailableMinor =
+    campaignId && campaignAvailableMinor != null ? campaignAvailableMinor : departmentBalanceMinor;
+  const exceedsBalance = totalCashMinor > effectiveAvailableMinor;
 
   function submit() {
     if (!beneficiaryId) {
@@ -111,7 +122,7 @@ export default function NewDistributionPage() {
     if (deliveryMode === 'planned' && exceedsBalance && totalCashMinor > 0) {
       toast.error(
         t('distributions.errExceedsBalance', {
-          available: formatTndMinor(availableBalanceMinor),
+          available: formatTndMinor(effectiveAvailableMinor),
         }),
       );
       return;
@@ -245,6 +256,17 @@ export default function NewDistributionPage() {
                 </option>
               ))}
             </Select>
+            {selectedCampaign && campaignAvailableMinor != null ? (
+              <div className="mt-2 rounded-md border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-sm dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                <span className="text-muted-foreground">{t('distributions.campaignAvailable')}: </span>
+                <span className="font-semibold tabular-nums text-emerald-800 dark:text-emerald-200">
+                  {formatTndMinor(campaignAvailableMinor)} {selectedCampaign.currency}
+                </span>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('distributions.campaignAvailableHint')}
+                </p>
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
