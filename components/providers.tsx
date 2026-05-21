@@ -6,13 +6,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { refresh } from '@/lib/api/auth';
 
-function hasRefreshCookie(): boolean {
-  return typeof document !== 'undefined' && document.cookie.includes('refresh_token=');
-}
-
 export function Providers({ children }: { children: ReactNode }) {
+  // refresh_token is httpOnly — restore session silently when still valid (up to 30 days).
   useEffect(() => {
-    if (!hasRefreshCookie()) return;
     refresh().catch(() => undefined);
   }, []);
   const [client] = useState(

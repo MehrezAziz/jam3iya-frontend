@@ -20,15 +20,35 @@ function isBrowser(): boolean {
 
 export async function api<T>(path: string, init?: RequestInit & { auth?: boolean }): Promise<T> {
   const url = isBrowser() ? `/api${path}` : `${API_BASE}/api${path}`;
-  const res = await fetch(url, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    cache: 'no-store',
-  });
+  const doFetch = () =>
+    fetch(url, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      cache: 'no-store',
+    });
+
+  let res = await doFetch();
+
+  // Access token is short-lived; renew from httpOnly refresh cookie when possible.
+  if (
+    isBrowser() &&
+    res.status === 401 &&
+    !path.startsWith('/auth/refresh') &&
+    !path.startsWith('/auth/login')
+  ) {
+    try {
+      const { refresh } = await import('./auth');
+      await refresh();
+      res = await doFetch();
+    } catch {
+      // keep original 401
+    }
+  }
+
   const text = await res.text();
   const body = text ? safeJson(text) : null;
   if (!res.ok) {
