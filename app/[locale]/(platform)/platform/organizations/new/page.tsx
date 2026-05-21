@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { listGovernorates, listDelegations, type Governorate } from '@/lib/api/geo';
 import { CheckCircle2, Copy, AlertTriangle } from 'lucide-react';
+import { optionalPhoneSchema } from '@/lib/phone';
+import { PhoneInput } from '@/components/phone-input';
 
 const slugRegex = /^[a-z0-9](?:[a-z0-9-]{1,48}[a-z0-9])?$/;
 
@@ -42,7 +44,7 @@ const schema = z.object({
   admin: z.object({
     email: z.string().email().max(254),
     fullName: z.string().min(2).max(200),
-    phone: z.string().max(40).optional().or(z.literal('')),
+    phone: optionalPhoneSchema,
     locale: z.enum(['ar', 'fr', 'en']),
     initialPassword: z
       .string()
@@ -300,7 +302,7 @@ export default function NewOrganizationPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adminPhone">{t('platform.adminPhone')}</Label>
-              <Input id="adminPhone" {...form.register('admin.phone')} />
+              <PhoneInput id="adminPhone" {...form.register('admin.phone')} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adminLocale">{t('platform.defaultLanguage')}</Label>

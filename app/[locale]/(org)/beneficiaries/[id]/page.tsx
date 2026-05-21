@@ -34,6 +34,8 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DateInput } from '@/components/ui/date-input';
 import { MoneyInput } from '@/components/ui/money-input';
+import { PhoneInput } from '@/components/phone-input';
+import { phoneOptionalFromInput } from '@/lib/phone';
 import { Link } from '@/i18n/navigation';
 import {
   addChild,
@@ -650,8 +652,14 @@ function DependentForm({
   const [notes, setNotes] = useState('');
 
   const mut = useMutation({
-    mutationFn: () =>
-      addDependent(beneficiaryId, {
+    mutationFn: () => {
+      let phoneVal: string | undefined;
+      try {
+        phoneVal = phoneOptionalFromInput(phone);
+      } catch {
+        throw new Error(t('validation.phone8Digits'));
+      }
+      return addDependent(beneficiaryId, {
         relationType,
         relationOther: relationType === 'other' ? relationOther : undefined,
         firstName,
@@ -659,9 +667,10 @@ function DependentForm({
         gender,
         dateOfBirth: dateOfBirth || undefined,
         cin: cin || undefined,
-        phone: phone || undefined,
+        phone: phoneVal,
         notes: notes || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(t('common.successCreated'));
       onSaved();
@@ -726,7 +735,7 @@ function DependentForm({
         </div>
         <div>
           <Label>{t('beneficiaries.phone')}</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <Label>{t('beneficiaries.notes')}</Label>
@@ -768,17 +777,24 @@ function SpouseForm({
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   const mut = useMutation({
-    mutationFn: () =>
-      upsertSpouse(beneficiaryId, {
+    mutationFn: () => {
+      let phoneVal: string | undefined;
+      try {
+        phoneVal = phoneOptionalFromInput(phone);
+      } catch {
+        throw new Error(t('validation.phone8Digits'));
+      }
+      return upsertSpouse(beneficiaryId, {
         firstName,
         lastName,
         gender,
         dateOfBirth: dateOfBirth || undefined,
         cin,
-        phone: phone || undefined,
+        phone: phoneVal,
         hasJob,
         notes: notes || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(t('common.successCreated'));
       onSaved();
@@ -825,7 +841,7 @@ function SpouseForm({
         </div>
         <div>
           <Label>{t('beneficiaries.phone')}</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
         <div className="flex items-end gap-2">
           <input type="checkbox" checked={hasJob} onChange={(e) => setHasJob(e.target.checked)} className="h-4 w-4" />
@@ -1505,12 +1521,18 @@ function HousingForm({
   const [notes, setNotes] = useState('');
 
   const mut = useMutation({
-    mutationFn: () =>
-      addHousing(beneficiaryId, {
+    mutationFn: () => {
+      let ownerPhoneVal: string | undefined;
+      try {
+        ownerPhoneVal = phoneOptionalFromInput(ownerPhone);
+      } catch {
+        throw new Error(t('validation.phone8Digits'));
+      }
+      return addHousing(beneficiaryId, {
         tenure,
         rent: tenure === 'rented' && rent > 0 ? rent : undefined,
         ownerName: ownerName || undefined,
-        ownerPhone: ownerPhone || undefined,
+        ownerPhone: ownerPhoneVal,
         condition,
         rooms: rooms > 0 ? rooms : undefined,
         occupants: occupants > 0 ? occupants : undefined,
@@ -1518,7 +1540,8 @@ function HousingForm({
         hasRunningWater,
         address: address || undefined,
         notes: notes || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(t('common.successCreated'));
       onSaved();
@@ -1563,7 +1586,7 @@ function HousingForm({
             </div>
             <div>
               <Label>{t('beneficiaries.ownerPhone')}</Label>
-              <Input value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} />
+              <PhoneInput value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} />
             </div>
           </>
         )}

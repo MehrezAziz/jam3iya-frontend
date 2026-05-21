@@ -14,6 +14,8 @@ import { DateInput } from '@/components/ui/date-input';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { getBeneficiaryFull, updateBeneficiary } from '@/lib/api/beneficiaries';
 import { normalizeCinInput } from '@/lib/cin';
+import { phoneOptionalFromInput } from '@/lib/phone';
+import { PhoneInput } from '@/components/phone-input';
 import { getBeneficiaryAccessStatus, verifyBeneficiaryAccessPin } from '@/lib/api/tenancy';
 import { PinInput } from '@/components/pin-input';
 
@@ -46,6 +48,12 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
       if (cinDigits.length > 0 && cinDigits.length !== 8) {
         throw new Error(t('validation.invalidCin'));
       }
+      let phone: string | undefined;
+      try {
+        phone = phoneOptionalFromInput(form.phone ?? '');
+      } catch {
+        throw new Error(t('validation.phone8Digits'));
+      }
       return updateBeneficiary(id, {
         firstName: form.firstName,
         lastName: form.lastName,
@@ -53,7 +61,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
         dateOfBirth: form.dateOfBirth || undefined,
         maritalStatus: form.maritalStatus as 'single' | 'married' | 'divorced' | 'widowed' | 'separated',
         cin: cinDigits.length > 0 ? cinDigits : undefined,
-        phone: form.phone || undefined,
+        phone,
         address: form.address || undefined,
         region: form.region || undefined,
         city: form.city || undefined,
@@ -200,7 +208,10 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
             <p className="mt-1 text-xs text-muted-foreground">{t('beneficiaries.cinHint')}</p>
             {cinError ? <p className="mt-1 text-xs text-destructive">{cinError}</p> : null}
           </div>
-          <Field label={t('beneficiaries.phone')} value={form.phone ?? ''} onChange={(v) => set('phone', v)} />
+          <div>
+            <Label>{t('beneficiaries.phone')}</Label>
+            <PhoneInput value={form.phone ?? ''} onChange={(e) => set('phone', e.target.value)} />
+          </div>
           <div className="sm:col-span-2">
             <Label>{t('beneficiaries.address')}</Label>
             <Input value={form.address ?? ''} onChange={(e) => set('address', e.target.value)} />

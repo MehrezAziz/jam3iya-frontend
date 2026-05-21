@@ -14,8 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
+import { PhoneInput } from '@/components/phone-input';
 import { createBeneficiary } from '@/lib/api/beneficiaries';
 import { normalizeCinInput, optionalCinSchema } from '@/lib/cin';
+import { optionalPhoneSchema } from '@/lib/phone';
 import { getMainDepartment, listDepartments, type Department } from '@/lib/api/tenancy';
 import { useDepartmentScope } from '@/lib/department-scope';
 import { listGovernorates, listDelegations, type Governorate, type Delegation } from '@/lib/api/geo';
@@ -27,7 +29,7 @@ const schema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed', 'separated']),
   cin: z.string().regex(/^\d{8}$/).optional().or(z.literal('')),
-  phone: z.string().max(40).optional(),
+  phone: optionalPhoneSchema,
   address: z.string().max(500).optional(),
   region: z.string().max(120).optional(),
   city: z.string().max(120).optional(),
@@ -166,7 +168,7 @@ export default function NewBeneficiaryPage() {
                 <p className="mt-1 text-xs text-destructive">{form.formState.errors.cin.message}</p>
               ) : null}
             </div>
-            <Field label={t('beneficiaries.phone')} {...form.register('phone')} />
+            <Field label={t('beneficiaries.phone')} as={PhoneInput} {...form.register('phone')} />
             <Field label={t('beneficiaries.publicAlias')} {...form.register('publicAlias')} />
             <div>
               <Label>{t('beneficiaries.governorate')}</Label>
@@ -248,15 +250,16 @@ export default function NewBeneficiaryPage() {
 function Field({
   label,
   required,
+  as: InputComponent = Input,
   ...props
-}: { label: string; required?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; required?: boolean; as?: typeof Input } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
       <Label htmlFor={props.name as string}>
         {label}
         {required ? <span className="ms-0.5 text-destructive">*</span> : null}
       </Label>
-      <Input id={props.name as string} {...props} />
+      <InputComponent id={props.name as string} {...props} />
     </div>
   );
 }

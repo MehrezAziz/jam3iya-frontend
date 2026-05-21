@@ -23,7 +23,7 @@ export interface Occasion {
   name: string;
   description: string | null;
   periodStart: string;
-  periodEnd: string;
+  periodEnd: string | null;
   recurring: boolean;
   recurringRule: string | null;
   isHijriBased: boolean;
@@ -93,7 +93,7 @@ export function createOccasion(input: {
   name: string;
   description?: string;
   periodStart: string;
-  periodEnd: string;
+  periodEnd?: string | null;
   recurring?: boolean;
   recurringRule?: string;
   isHijriBased?: boolean;

@@ -691,6 +691,7 @@
     "required": "This field is required",
     "invalidEmail": "Invalid email address",
     "passwordTooShort": "Password too short (minimum {min} characters)",
-    "invalidCin": "Invalid CIN (8 digits)"
+    "invalidCin": "Invalid CIN (8 digits)",
+    "phone8Digits": "Phone must be exactly 8 digits (e.g. 21838888)"
   }
 }

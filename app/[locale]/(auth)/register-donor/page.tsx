@@ -4,19 +4,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
+import { optionalPhoneSchema } from '@/lib/phone';
 import { toast } from 'sonner';
 import { useRouter, Link } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { PhoneInput } from '@/components/phone-input';
 import { registerDonor } from '@/lib/api/auth';
 
 const schema = z.object({
   organizationSlug: z.string().min(1).max(80),
   fullName: z.string().min(2).max(200),
   email: z.string().email(),
-  phone: z.string().max(40).optional(),
+  phone: optionalPhoneSchema,
   pseudo: z.string().max(80).optional(),
   fiscalId: z.string().max(80).optional(),
   password: z.string().min(12),
@@ -53,7 +55,7 @@ export default function RegisterDonorPage() {
           <Field label={t('auth.organizationSlug')} {...form.register('organizationSlug')} />
           <Field label={t('auth.fullName')} {...form.register('fullName')} autoComplete="name" />
           <Field label={t('auth.email')} type="email" autoComplete="email" {...form.register('email')} />
-          <Field label={t('auth.phone')} type="tel" autoComplete="tel" {...form.register('phone')} />
+          <Field label={t('auth.phone')} as={PhoneInput} {...form.register('phone')} />
           <Field label={t('auth.pseudo')} {...form.register('pseudo')} />
           <Field label={t('donations.donorFiscalId')} {...form.register('fiscalId')} />
           <Field
@@ -79,12 +81,13 @@ export default function RegisterDonorPage() {
 
 function Field({
   label,
+  as: InputComponent = Input,
   ...props
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; as?: typeof Input } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={props.name as string}>{label}</Label>
-      <Input id={props.name as string} {...props} />
+      <InputComponent id={props.name as string} {...props} />
     </div>
   );
 }

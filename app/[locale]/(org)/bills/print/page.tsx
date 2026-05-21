@@ -84,9 +84,19 @@ export default function BillPrintPage() {
     : ((b.recipientSnapshot?.name as string | undefined) ?? donation?.donorNameSnapshot ?? '—');
 
   const logoSrc = b.organization.logoFileId ? organizationLogoUrl() : null;
+  const printDate = new Date().toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
     <div className="mx-auto max-w-md p-8 text-black print:p-4">
+      <div className="mb-4 hidden items-start justify-between text-sm print:flex">
+        <span className="text-gray-700">{printDate}</span>
+        <span className="font-bold text-emerald-700">{t('app.name')}</span>
+      </div>
       <header className="text-center">
         <h1 className="text-xl font-bold text-emerald-700 print:text-emerald-800">{b.organization.legalName}</h1>
         {b.organization.fiscalId ? (

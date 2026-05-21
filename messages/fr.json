@@ -655,6 +655,7 @@
     "required": "Ce champ est obligatoire",
     "invalidEmail": "Adresse e-mail invalide",
     "passwordTooShort": "Mot de passe trop court (minimum {min} caractères)",
-    "invalidCin": "CIN invalide (8 chiffres)"
+    "invalidCin": "CIN invalide (8 chiffres)",
+    "phone8Digits": "Le téléphone doit comporter exactement 8 chiffres (ex. 21838888)"
   }
 }

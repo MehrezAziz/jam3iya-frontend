@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/phone-input';
+import { phoneOptionalFromInput } from '@/lib/phone';
 import {
   getPlatformOrganization,
   resetOrgAdminPassword,
@@ -338,7 +340,7 @@ function OrgAdminPanel({
                   </div>
                   <div>
                     <Label htmlFor={`admin-phone-${admin.id}`}>{t('platform.adminPhone')}</Label>
-                    <Input
+                    <PhoneInput
                       id={`admin-phone-${admin.id}`}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -380,12 +382,19 @@ function OrgAdminPanel({
                     (credentialPassword.length > 0 && credentialPassword.length < 12)
                   }
                   onClick={() => {
+                    let phonePayload: string | null = null;
+                    try {
+                      phonePayload = phone.trim() ? (phoneOptionalFromInput(phone) ?? null) : null;
+                    } catch {
+                      toast.error(t('validation.phone8Digits'));
+                      return;
+                    }
                     updateMut.mutate(
                       {
                         userId: admin.id,
                         email: email.trim(),
                         fullName: fullName.trim(),
-                        phone,
+                        phone: phonePayload,
                         locale,
                         ...(credentialPassword ? { newPassword: credentialPassword } : {}),
                       },

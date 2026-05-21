@@ -57,11 +57,21 @@ const occasionSchema = z
     name: z.string().min(2).max(160),
     description: z.string().max(2000).optional(),
     periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
+    noEndDate: z.boolean(),
     isHijriBased: z.boolean(),
     recurring: z.boolean(),
   })
-  .refine((d) => d.periodStart <= d.periodEnd, { message: 'periodStart must be before periodEnd' });
+  .superRefine((d, ctx) => {
+    if (d.noEndDate) return;
+    if (!d.periodEnd) {
+      ctx.addIssue({ code: 'custom', message: 'periodEnd required', path: ['periodEnd'] });
+      return;
+    }
+    if (d.periodStart > d.periodEnd) {
+      ctx.addIssue({ code: 'custom', message: 'periodStart must be before periodEnd', path: ['periodEnd'] });
+    }
+  });
 type OccasionForm = z.infer<typeof occasionSchema>;
 
 function todayIsoDate(): string {
@@ -104,8 +114,16 @@ export default function CampaignsPage() {
 
   const oForm = useForm<OccasionForm>({
     resolver: zodResolver(occasionSchema),
-    defaultValues: { name: '', isHijriBased: false, recurring: false, periodStart: '', periodEnd: '' },
+    defaultValues: {
+      name: '',
+      isHijriBased: false,
+      recurring: false,
+      periodStart: '',
+      periodEnd: '',
+      noEndDate: false,
+    },
   });
+  const occasionNoEndDate = oForm.watch('noEndDate');
 
   const createC = useMutation({
     mutationFn: (v: CampaignForm) => {
@@ -137,7 +155,7 @@ export default function CampaignsPage() {
         name: v.name,
         description: v.description || undefined,
         periodStart: v.periodStart,
-        periodEnd: v.periodEnd,
+        periodEnd: v.noEndDate ? null : v.periodEnd || null,
         isHijriBased: v.isHijriBased,
         recurring: v.recurring,
       }),
@@ -299,7 +317,11 @@ export default function CampaignsPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="oend">{t('campaigns.periodEnd')}</Label>
-                <DateInput id="oend" {...oForm.register('periodEnd')} />
+                <DateInput id="oend" disabled={occasionNoEndDate} {...oForm.register('periodEnd')} />
+              </div>
+              <div className="flex items-center gap-2 md:col-span-2">
+                <input id="onoend" type="checkbox" className="h-4 w-4" {...oForm.register('noEndDate')} />
+                <Label htmlFor="onoend">{t('campaigns.noEndDate')}</Label>
               </div>
               <div className="flex items-center gap-2">
                 <input id="ohij" type="checkbox" className="h-4 w-4" {...oForm.register('isHijriBased')} />
@@ -338,7 +360,7 @@ export default function CampaignsPage() {
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     <Calendar className="me-1 inline h-3 w-3" />
-                    {formatDate(o.periodStart)} → {formatDate(o.periodEnd)}
+                    {formatDate(o.periodStart)} → {o.periodEnd ? formatDate(o.periodEnd) : t('campaigns.openEnded')}
                     {o.recurring ? <span className="ms-2">· {t('campaigns.recurring')}</span> : null}
                   </div>
                   {o.description ? (

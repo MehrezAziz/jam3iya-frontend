@@ -4,17 +4,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
+import { requiredPhoneSchema } from '@/lib/phone';
 import { toast } from 'sonner';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { PhoneInput } from '@/components/phone-input';
 import { createDonorAccount } from '@/lib/api/donors';
 
 const schema = z.object({
   fullName: z.string().min(2).max(200),
-  phone: z.string().min(8).max(40),
+  phone: requiredPhoneSchema,
   password: z.string().min(12),
   email: z.string().email().optional().or(z.literal('')),
   fiscalId: z.string().max(80).optional(),
@@ -61,7 +63,7 @@ export default function AddDonorPage() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Field label={t('auth.fullName')} {...form.register('fullName')} autoComplete="name" />
-            <Field label={t('auth.phone')} type="tel" {...form.register('phone')} autoComplete="tel" />
+            <Field label={t('auth.phone')} as={PhoneInput} {...form.register('phone')} />
             <Field label={t('auth.email')} type="email" {...form.register('email')} autoComplete="email" />
             <Field label={t('donations.donorFiscalId')} {...form.register('fiscalId')} />
             <Field
@@ -88,12 +90,13 @@ export default function AddDonorPage() {
 
 function Field({
   label,
+  as: InputComponent = Input,
   ...props
-}: { label: string } & React.ComponentProps<typeof Input>) {
+}: { label: string; as?: typeof Input } & React.ComponentProps<typeof Input>) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <Input {...props} />
+      <InputComponent {...props} />
     </div>
   );
 }

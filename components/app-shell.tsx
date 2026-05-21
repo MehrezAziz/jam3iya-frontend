@@ -148,7 +148,7 @@ export function AppShell({
   return (
     <div className="min-h-screen md:ps-64">
       {/* Desktop sidebar — fixed, does not scroll with main content */}
-      <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-border bg-background md:flex">
+      <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-border bg-background md:flex print:hidden">
         <div className="shrink-0 border-b border-border px-6 py-4">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
@@ -201,7 +201,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:px-4">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:px-4 print:hidden">
           <div className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
             <Button
               type="button"
@@ -227,7 +227,7 @@ export function AppShell({
             </Button>
           </div>
         </header>
-        <main className="flex-1 bg-muted/30 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 bg-muted/30 p-4 sm:p-6 print:bg-white print:p-0">{children}</main>
       </div>
     </div>
   );
