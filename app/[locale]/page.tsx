@@ -18,7 +18,9 @@ function LandingInner() {
     <main className="flex-1">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="text-xl font-bold tracking-tight text-primary">{t('app.name')}</div>
+          <Link href="/" className="text-xl font-bold tracking-tight text-primary hover:opacity-90">
+            {t('app.name')}
+          </Link>
           <nav className="flex items-center gap-2">
             <LanguageSwitcher />
             <Button asChild variant="ghost" size="sm">
