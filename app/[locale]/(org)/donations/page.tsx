@@ -74,13 +74,13 @@ export default function DonationsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{t('donations.title')}</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Button variant="outline" className="w-full sm:w-auto" asChild>
             <Link href="/donations/add-donor">{t('donations.addDonator')}</Link>
           </Button>
-          <Button asChild>
+          <Button className="w-full sm:w-auto" asChild>
             <Link href="/donations/new-cash">{t('donations.newCash')}</Link>
           </Button>
         </div>
