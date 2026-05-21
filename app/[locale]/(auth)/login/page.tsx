@@ -37,11 +37,11 @@ export default function LoginPage() {
   const [needs2fa, setNeeds2fa] = useState(false);
   const staffForm = useForm<StaffForm>({
     resolver: zodResolver(staffSchema),
-    defaultValues: { organizationSlug: '__platform__', email: '', password: '' },
+    defaultValues: { organizationSlug: '', email: '', password: '' },
   });
   const deptForm = useForm<DeptForm>({
     resolver: zodResolver(deptSchema),
-    defaultValues: { organizationSlug: '__platform__', email: '', password: '' },
+    defaultValues: { organizationSlug: '', email: '', password: '' },
   });
 
   async function onStaffSubmit(values: StaffForm) {

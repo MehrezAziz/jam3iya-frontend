@@ -543,6 +543,8 @@
     "periodEnd": "نهاية الفترة",
     "target": "الهدف (ملّيم)",
     "targetAmount": "المبلغ المستهدف",
+    "availableBalance": "الرصيد المتاح",
+    "collectedDistributed": "{collected} مُجمَّع · {distributed} مُوزَّع",
     "occasion": "المناسبة (اختيارية)",
     "state": "الحالة",
     "state_draft": "مسودّة",

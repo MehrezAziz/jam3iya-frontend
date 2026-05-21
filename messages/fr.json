@@ -543,6 +543,8 @@
     "periodEnd": "Fin période",
     "target": "Objectif (millimes)",
     "targetAmount": "Montant objectif",
+    "availableBalance": "Solde disponible",
+    "collectedDistributed": "{collected} collectés · {distributed} distribués",
     "occasion": "Occasion (optionnel)",
     "state": "État",
     "state_draft": "Brouillon",

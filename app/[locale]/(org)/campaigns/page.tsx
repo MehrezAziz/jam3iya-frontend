@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Calendar, Eye, EyeOff, Megaphone, Pencil, Plus, Sparkles, Target } from 'lucide-react';
+import { Calendar, Eye, EyeOff, Megaphone, Pencil, Plus, Sparkles, Target, Wallet } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -416,6 +416,8 @@ function CampaignCard({
   });
   const target = c.targetAmountMinor ?? 0;
   const collected = c.collectedAmountMinor;
+  const distributed = c.distributedAmountMinor;
+  const available = Math.max(0, collected - distributed);
   const pct = target > 0 ? Math.min(100, Math.round((collected / target) * 100)) : null;
   return (
     <li className="rounded-md border border-border p-3">
@@ -477,6 +479,23 @@ function CampaignCard({
         <Calendar className="me-1 inline h-3 w-3" />
         {formatDate(c.startsAt)} → {formatCampaignEnd(c.endsAt, t)}
         {c.occasion ? <span className="ms-2">· {c.occasion.name}</span> : null}
+      </div>
+      <div className="mt-3 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-3 py-2 dark:border-emerald-900/50 dark:bg-emerald-950/40">
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Wallet className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
+            {t('campaigns.availableBalance')}
+          </span>
+          <span className="font-semibold tabular-nums text-emerald-800 dark:text-emerald-200">
+            {formatMoney(available, c.currency)}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('campaigns.collectedDistributed', {
+            collected: formatMoney(collected, c.currency),
+            distributed: formatMoney(distributed, c.currency),
+          })}
+        </p>
       </div>
       <div className="mt-3 space-y-1">
         <div className="flex items-center justify-between text-xs">
