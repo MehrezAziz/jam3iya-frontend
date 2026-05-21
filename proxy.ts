@@ -27,8 +27,37 @@ export default async function proxy(request: NextRequest) {
       typeof refreshRes.headers.getSetCookie === 'function'
         ? refreshRes.headers.getSetCookie()
         : [];
-    for (const cookie of setCookies) {
-      response.headers.append('Set-Cookie', cookie);
+    if (setCookies.length > 0) {
+      response.cookies.delete('access_token');
+      response.cookies.delete('refresh_token');
+      for (const raw of setCookies) {
+        const eq = raw.indexOf('=');
+        if (eq <= 0) continue;
+        const name = raw.slice(0, eq);
+        const rest = raw.slice(eq + 1).split(';').map((p) => p.trim());
+        const value = rest[0] ?? '';
+        const opts: {
+          path?: string;
+          domain?: string;
+          maxAge?: number;
+          httpOnly?: boolean;
+          secure?: boolean;
+          sameSite?: 'lax' | 'strict' | 'none';
+        } = { path: '/' };
+        for (let i = 1; i < rest.length; i++) {
+          const part = rest[i];
+          const sep = part.indexOf('=');
+          const k = (sep === -1 ? part : part.slice(0, sep)).toLowerCase();
+          const v = sep === -1 ? '' : part.slice(sep + 1);
+          if (k === 'httponly') opts.httpOnly = true;
+          else if (k === 'secure') opts.secure = true;
+          else if (k === 'path' && v) opts.path = v;
+          else if (k === 'domain' && v) opts.domain = v;
+          else if (k === 'max-age' && v) opts.maxAge = Number.parseInt(v, 10);
+          else if (k === 'samesite' && v) opts.sameSite = v.toLowerCase() as 'lax' | 'strict' | 'none';
+        }
+        response.cookies.set(name, value, opts);
+      }
     }
   } catch {
     // network error — layout will redirect unauthenticated users

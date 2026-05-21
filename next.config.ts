@@ -7,14 +7,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/:path*`,
-      },
-    ];
-  },
+  // /api/* is proxied by app/api/[...path]/route.ts so Set-Cookie reaches the browser in production.
 };
 
 export default withNextIntl(nextConfig);

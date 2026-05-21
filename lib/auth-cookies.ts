@@ -77,7 +77,7 @@ export async function tryRefreshSession(): Promise<boolean> {
     if (setCookies.length > 0) {
       applySetCookieHeaders(store, setCookies);
     }
-    return true;
+    return Boolean((await cookies()).get('access_token')?.value);
   } catch {
     return false;
   }
