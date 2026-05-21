@@ -201,8 +201,8 @@ function StatusBadge({ status, t }: { status: DistributionSummary['status']; t: 
 function formatMoney(minor: number, currency: string): string {
   const amount = minor / 1000;
   return `${amount.toLocaleString(undefined, {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
   })} ${currency}`;
 }
 

@@ -35,7 +35,13 @@ export interface BillPrintDonation {
 
 export function getBill(id: string): Promise<
   BillItem & {
-    organization: { legalName: string; fiscalId: string | null; address: string | null; phone: string | null };
+    organization: {
+      legalName: string;
+      fiscalId: string | null;
+      address: string | null;
+      phone: string | null;
+      logoFileId: string | null;
+    };
     linkedDonation: BillPrintDonation | null;
   }
 > {

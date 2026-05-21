@@ -10,7 +10,8 @@ export function formatTndMinor(amountMinor: number | string | bigint, locale = '
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'TND',
-    minimumFractionDigits: 3,
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
   }).format(num / 1000);
 }
 

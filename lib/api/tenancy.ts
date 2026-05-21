@@ -31,6 +31,36 @@ export interface OrganizationProfile {
   status: string;
   publicPageEnabled: boolean;
   defaultBillSeries: string;
+  logoFileId: string | null;
+}
+
+export function organizationLogoUrl(): string {
+  return '/api/organizations/me/logo';
+}
+
+export async function uploadOrganizationLogo(file: File): Promise<{ logoFileId: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch('/api/organizations/me/logo', {
+    method: 'PUT',
+    body: form,
+    credentials: 'include',
+  });
+  const text = await res.text();
+  const body = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(body?.message ?? `Upload failed (${res.status})`);
+  return { logoFileId: body.logoFileId as string };
+}
+
+export async function removeOrganizationLogo(): Promise<{ ok: true }> {
+  const res = await fetch('/api/organizations/me/logo', {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  const text = await res.text();
+  const body = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(body?.message ?? `Failed (${res.status})`);
+  return { ok: true };
 }
 
 export function myOrganization(): Promise<OrganizationProfile> {

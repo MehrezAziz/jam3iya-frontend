@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Calendar, Eye, EyeOff, Megaphone, Pencil, Plus, Sparkles, Target } from 'lucide-react';
@@ -64,6 +64,14 @@ const occasionSchema = z
   .refine((d) => d.periodStart <= d.periodEnd, { message: 'periodStart must be before periodEnd' });
 type OccasionForm = z.infer<typeof occasionSchema>;
 
+function todayIsoDate(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export default function CampaignsPage() {
   const t = useTranslations();
   const qc = useQueryClient();
@@ -85,6 +93,15 @@ export default function CampaignsPage() {
     },
   });
   const noEndDate = cForm.watch('noEndDate');
+  const startsAtWatch = cForm.watch('startsAt');
+
+  useEffect(() => {
+    if (!showNewCampaign) return;
+    if (!startsAtWatch || !/^\d{4}-\d{2}-\d{2}$/.test(startsAtWatch)) return;
+    const today = todayIsoDate();
+    cForm.setValue('state', startsAtWatch <= today ? 'active' : 'draft', { shouldDirty: true });
+  }, [startsAtWatch, showNewCampaign, cForm]);
+
   const oForm = useForm<OccasionForm>({
     resolver: zodResolver(occasionSchema),
     defaultValues: { name: '', isHijriBased: false, recurring: false, periodStart: '', periodEnd: '' },
@@ -170,6 +187,7 @@ export default function CampaignsPage() {
               <div className="space-y-1">
                 <Label htmlFor="cstart">{t('campaigns.startsAt')}</Label>
                 <DateInput id="cstart" {...cForm.register('startsAt')} />
+                <p className="text-xs text-muted-foreground">{t('campaigns.startsAtStateHint')}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">

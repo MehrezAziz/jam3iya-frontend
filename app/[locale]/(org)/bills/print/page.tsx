@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { getBill } from '@/lib/api/bills';
+import { organizationLogoUrl } from '@/lib/api/tenancy';
 import { formatTndMinor } from '@/lib/utils';
 
 function kindLabel(kind: string, t: (k: string) => string): string {
@@ -48,17 +49,29 @@ export default function BillPrintPage() {
   const billRef = `${b.series}-${b.yearIssued}-${b.number}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(b.id)}`;
 
+  const logoSrc = b.organization.logoFileId ? organizationLogoUrl() : null;
+
   return (
     <div className="mx-auto max-w-md p-8 text-black print:p-4">
-      <header className="border-b border-gray-300 pb-4 text-center">
-        <h1 className="text-xl font-bold">{b.organization.legalName}</h1>
-        {b.organization.fiscalId ? (
-          <p className="text-sm text-gray-700">
-            {t('bills.fiscalId')}: {b.organization.fiscalId}
-          </p>
+      <header className="relative min-h-28 border-b border-gray-300 pb-4">
+        {logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoSrc}
+            alt=""
+            className="absolute start-0 top-0 h-28 w-28 object-contain print:h-28 print:w-28"
+          />
         ) : null}
-        <p className="mt-2 text-base font-semibold">{t('bills.receiptTitle')}</p>
-        <p className="font-mono text-sm">{billRef}</p>
+        <div className="flex min-h-28 w-full flex-col items-center justify-center text-center">
+          <h1 className="text-xl font-bold">{b.organization.legalName}</h1>
+          {b.organization.fiscalId ? (
+            <p className="text-sm text-gray-700">
+              {t('bills.fiscalId')}: {b.organization.fiscalId}
+            </p>
+          ) : null}
+          <p className="mt-2 text-base font-semibold">{t('bills.receiptTitle')}</p>
+          <p className="font-mono text-sm">{billRef}</p>
+        </div>
       </header>
 
       <div className="mt-4 flex justify-center">

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { Building2, KeyRound, Languages, Loader2, MapPin, Users } from 'lucide-react';
+import { Building2, ImageIcon, KeyRound, Languages, Loader2, MapPin, Users } from 'lucide-react';
 import { DualDateHeader } from '@/components/dual-date-header';
 import { LanguageOptionList } from '@/components/language-switcher';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,9 @@ import { cn } from '@/lib/utils';
 import { listGovernorates, listDelegations, type Governorate } from '@/lib/api/geo';
 import {
   myOrganization,
+  organizationLogoUrl,
+  uploadOrganizationLogo,
+  removeOrganizationLogo,
   listDepartments,
   getMainDepartment,
   updateMainDepartmentLocation,
@@ -112,6 +115,7 @@ export default function SettingsPage() {
       ) : (
         <>
           <InterfaceLanguageCard t={t} />
+          {orgQ.data ? <OrgLogoCard org={orgQ.data} t={t} onUpdated={() => qc.invalidateQueries({ queryKey: ['organization'] })} /> : null}
           {orgQ.data ? <OrgProfileCard org={orgQ.data} t={t} /> : null}
           <BeneficiaryPinCard pinConfigured={pinStatusQ.data?.pinConfigured ?? false} t={t} />
           {mainDeptQ.data ? (
@@ -150,6 +154,90 @@ function InterfaceLanguageCard({ t }: { t: (k: string) => string }) {
         </div>
         <LanguageOptionList compact className="shrink-0" />
       </CardHeader>
+    </Card>
+  );
+}
+
+function OrgLogoCard({
+  org,
+  t,
+  onUpdated,
+}: {
+  org: OrganizationProfile;
+  t: (k: string) => string;
+  onUpdated: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const logoSrc = org.logoFileId ? organizationLogoUrl() : null;
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await uploadOrganizationLogo(file);
+      toast.success(t('settings.logoSaved'));
+      onUpdated();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function onRemove() {
+    setUploading(true);
+    try {
+      await removeOrganizationLogo();
+      toast.success(t('settings.logoRemoved'));
+      onUpdated();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ImageIcon className="h-4 w-4" />
+          {t('settings.orgLogo')}
+        </CardTitle>
+        <CardDescription>{t('settings.orgLogoHint')}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap items-center gap-4">
+        <div className="flex h-20 w-20 items-center justify-center rounded-md border border-border bg-muted/30">
+          {logoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoSrc} alt="" className="max-h-16 max-w-16 object-contain" />
+          ) : (
+            <span className="px-2 text-center text-xs text-muted-foreground">{t('settings.noLogo')}</span>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="org-logo-upload" className="cursor-pointer">
+            <span className="inline-flex h-9 items-center rounded-md border border-border bg-background px-3 text-sm hover:bg-muted">
+              {uploading ? t('common.loading') : t('settings.uploadLogo')}
+            </span>
+            <input
+              id="org-logo-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={uploading}
+              onChange={onFileChange}
+            />
+          </Label>
+          {org.logoFileId ? (
+            <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={onRemove}>
+              {t('settings.removeLogo')}
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
     </Card>
   );
 }
