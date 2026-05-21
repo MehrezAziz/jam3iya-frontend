@@ -4,9 +4,23 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 type RouteCtx = { params: Promise<{ path: string[] }> };
 
-/** Host-only cookies work for both jam3iya.org and www when Domain is omitted. */
-function normalizeSetCookieForBrowser(raw: string): string {
-  return raw
+const HOP_BY_HOP = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'host',
+  'content-length',
+  'content-encoding',
+]);
+
+/** Drop the Domain attribute so the browser saves the cookie host-only (works for jam3iya.org and www). */
+function stripDomain(setCookie: string): string {
+  return setCookie
     .split(';')
     .map((p) => p.trim())
     .filter((p) => p.length > 0 && !p.toLowerCase().startsWith('domain='))
@@ -14,37 +28,40 @@ function normalizeSetCookieForBrowser(raw: string): string {
 }
 
 /**
- * Proxy /api/* to the Nest backend and forward Set-Cookie headers.
- * next.config rewrites often drop auth cookies in production Docker builds.
+ * Proxy /api/* to the Nest backend.
+ *
+ * Critical: each `Set-Cookie` from the backend is forwarded as a separate
+ * header entry (using `getSetCookie()`), never via `Headers.forEach` — that
+ * would join multiple cookies with commas and break Max-Age, killing
+ * persistent login.
  */
 async function proxyToBackend(req: NextRequest, { params }: RouteCtx): Promise<NextResponse> {
   const { path } = await params;
   const target = new URL(`/api/${path.join('/')}`, API_BASE);
   target.search = req.nextUrl.search;
 
-  const headers = new Headers();
+  const fwdHeaders = new Headers();
   req.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    if (lower === 'host' || lower === 'connection' || lower === 'content-length') return;
-    headers.set(key, value);
+    if (HOP_BY_HOP.has(key.toLowerCase())) return;
+    fwdHeaders.set(key, value);
   });
-  const cookie = req.headers.get('cookie');
-  if (cookie) headers.set('cookie', cookie);
 
   const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  const body = hasBody ? Buffer.from(await req.arrayBuffer()) : undefined;
+
   const backendRes = await fetch(target, {
     method: req.method,
-    headers,
-    body: hasBody ? req.body : undefined,
+    headers: fwdHeaders,
+    body,
     cache: 'no-store',
-    // Required when streaming a request body to Node fetch
-    ...(hasBody ? { duplex: 'half' as const } : {}),
+    redirect: 'manual',
   });
 
   const resHeaders = new Headers();
   backendRes.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (lower === 'transfer-encoding' || lower === 'connection') return;
+    if (lower === 'set-cookie') return;
+    if (HOP_BY_HOP.has(lower)) return;
     resHeaders.append(key, value);
   });
 
@@ -52,14 +69,12 @@ async function proxyToBackend(req: NextRequest, { params }: RouteCtx): Promise<N
     typeof backendRes.headers.getSetCookie === 'function'
       ? backendRes.headers.getSetCookie()
       : [];
-  if (setCookies.length > 0) {
-    resHeaders.delete('set-cookie');
-    for (const cookie of setCookies) {
-      resHeaders.append('Set-Cookie', normalizeSetCookieForBrowser(cookie));
-    }
+  for (const cookie of setCookies) {
+    resHeaders.append('Set-Cookie', stripDomain(cookie));
   }
 
-  return new NextResponse(backendRes.body, {
+  const responseBody = await backendRes.arrayBuffer();
+  return new NextResponse(responseBody, {
     status: backendRes.status,
     statusText: backendRes.statusText,
     headers: resHeaders,
