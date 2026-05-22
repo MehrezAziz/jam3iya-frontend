@@ -58,10 +58,10 @@ function serializeCookie(c: ParsedCookie): string {
   return parts.join('; ');
 }
 
-function hasSession(request: NextRequest): boolean {
-  return Boolean(
-    request.cookies.get('access_token')?.value || request.cookies.get('refresh_token')?.value,
-  );
+/** Remove stale auth cookies so an invalid refresh_token cannot cause redirect loops. */
+function clearAuthCookies(response: NextResponse): void {
+  response.cookies.delete('access_token');
+  response.cookies.delete('refresh_token');
 }
 
 export default async function proxy(request: NextRequest) {
@@ -70,6 +70,8 @@ export default async function proxy(request: NextRequest) {
   const refresh = request.cookies.get('refresh_token')?.value;
 
   let parsed: ParsedCookie[] = [];
+  let staleSession = false;
+
   if (!access && refresh) {
     try {
       const r = await fetch(`${API_BASE}/api/auth/refresh`, {
@@ -82,9 +84,11 @@ export default async function proxy(request: NextRequest) {
           const c = parseSetCookie(raw);
           if (c) parsed.push(c);
         }
+      } else {
+        staleSession = true;
       }
     } catch {
-      // unauthenticated — protected routes fall through to welcome redirect
+      staleSession = true;
     }
   }
 
@@ -93,16 +97,21 @@ export default async function proxy(request: NextRequest) {
     if (c.name === 'access_token') access = c.value;
   }
 
-  const signedIn = Boolean(access || refresh);
+  // Only treat as logged in when we have a working access token (not a dead refresh cookie).
+  const authenticated = Boolean(access);
 
-  // Guest opened a protected page → welcome page, not login.
-  if (!signedIn && isProtectedPath(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
+  if (!authenticated && isProtectedPath(pathname)) {
+    const res = NextResponse.redirect(new URL('/', request.url));
+    if (staleSession || refresh) clearAuthCookies(res);
+    return res;
   }
 
-  // Signed-in user opened the marketing home → dashboard (staff default).
-  if (signedIn && isLandingPath(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (authenticated && isLandingPath(pathname)) {
+    const res = NextResponse.redirect(new URL('/dashboard', request.url));
+    for (const c of parsed) {
+      res.headers.append('Set-Cookie', serializeCookie(c));
+    }
+    return res;
   }
 
   const response = intlMiddleware(request);
@@ -110,6 +119,7 @@ export default async function proxy(request: NextRequest) {
   for (const c of parsed) {
     response.headers.append('Set-Cookie', serializeCookie(c));
   }
+  if (staleSession) clearAuthCookies(response);
 
   return response;
 }
