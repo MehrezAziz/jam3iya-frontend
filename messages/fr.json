@@ -567,6 +567,14 @@
     "hideDonations": "Masquer les dons",
     "noDonations": "Aucun don lié à cette campagne pour le moment."
   },
+  "audit": {
+    "when": "Quand",
+    "action": "Action",
+    "outcome": "Résultat",
+    "resourceId": "ID ressource",
+    "reason": "Motif",
+    "noEntries": "Aucune entrée d'audit pour le moment."
+  },
   "public": {
     "subtitle": "Bilan de transparence pour {year}",
     "fundsCollected": "Fonds collectés cette année",

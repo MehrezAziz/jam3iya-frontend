@@ -567,6 +567,14 @@
     "hideDonations": "إخفاء التبرعات",
     "noDonations": "لا توجد تبرعات مرتبطة بهذه الحملة بعد."
   },
+  "audit": {
+    "when": "متى",
+    "action": "العملية",
+    "outcome": "النتيجة",
+    "resourceId": "معرّف المورد",
+    "reason": "السبب",
+    "noEntries": "لا توجد عمليات مسجّلة بعد."
+  },
   "public": {
     "subtitle": "تقرير الشفافية لسنة {year}",
     "fundsCollected": "ما جُمع هذه السنة",

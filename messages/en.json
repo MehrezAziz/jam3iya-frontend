@@ -603,6 +603,14 @@
     "hideDonations": "Hide donations",
     "noDonations": "No donations linked to this campaign yet."
   },
+  "audit": {
+    "when": "When",
+    "action": "Action",
+    "outcome": "Outcome",
+    "resourceId": "Resource ID",
+    "reason": "Reason",
+    "noEntries": "No audit entries yet."
+  },
   "public": {
     "subtitle": "Transparency snapshot for {year}",
     "fundsCollected": "Funds collected this year",
