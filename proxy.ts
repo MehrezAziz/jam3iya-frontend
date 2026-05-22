@@ -1,5 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
+import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isLandingPath, isProtectedPath } from '@/lib/auth-routes';
 import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
@@ -35,7 +37,6 @@ function parseSetCookie(raw: string): ParsedCookie | null {
     if (key === 'httponly') options.httpOnly = true;
     else if (key === 'secure') options.secure = true;
     else if (key === 'path' && val) options.path = val;
-    // Strip Domain — host-only cookies work for jam3iya.org and www.jam3iya.org alike.
     else if (key === 'domain') continue;
     else if (key === 'max-age' && val) options.maxAge = Number.parseInt(val, 10);
     else if (key === 'samesite' && val)
@@ -57,11 +58,17 @@ function serializeCookie(c: ParsedCookie): string {
   return parts.join('; ');
 }
 
+function hasSession(request: NextRequest): boolean {
+  return Boolean(
+    request.cookies.get('access_token')?.value || request.cookies.get('refresh_token')?.value,
+  );
+}
+
 export default async function proxy(request: NextRequest) {
-  const access = request.cookies.get('access_token')?.value;
+  const pathname = request.nextUrl.pathname;
+  let access = request.cookies.get('access_token')?.value;
   const refresh = request.cookies.get('refresh_token')?.value;
 
-  // Need a refresh? Only when access is missing/expired but refresh is present.
   let parsed: ParsedCookie[] = [];
   if (!access && refresh) {
     try {
@@ -77,20 +84,29 @@ export default async function proxy(request: NextRequest) {
         }
       }
     } catch {
-      // ignore — page layout will redirect to /login if user is unauthenticated
+      // unauthenticated — protected routes fall through to welcome redirect
     }
   }
 
-  // Mutate the incoming request so this same render sees the fresh cookies.
-  // request.cookies.set() updates `cookie` header that downstream `cookies()` reads.
   for (const c of parsed) {
     request.cookies.set(c.name, c.value);
+    if (c.name === 'access_token') access = c.value;
   }
 
-  // Delegate locale routing to next-intl after cookies have been refreshed.
+  const signedIn = Boolean(access || refresh);
+
+  // Guest opened a protected page → welcome page, not login.
+  if (!signedIn && isProtectedPath(pathname)) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Signed-in user opened the marketing home → dashboard (staff default).
+  if (signedIn && isLandingPath(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
   const response = intlMiddleware(request);
 
-  // Persist the rotated tokens on the browser for subsequent requests.
   for (const c of parsed) {
     response.headers.append('Set-Cookie', serializeCookie(c));
   }

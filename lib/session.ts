@@ -76,7 +76,7 @@ export async function requireUser(opts?: {
   const locale = (opts?.locale ?? 'ar') as 'ar' | 'fr' | 'en';
   const user = await getCurrentUser();
   if (!user) {
-    redirect({ href: '/login', locale });
+    redirect({ href: '/', locale });
     throw new Error('redirected');
   }
   if (opts?.kind && user.kind !== opts.kind) {

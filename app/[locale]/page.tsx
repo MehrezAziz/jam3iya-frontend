@@ -5,21 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { HeartHandshake, ShieldCheck, ScrollText } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { getPostLoginPath } from '@/lib/auth-routes';
 import { getCurrentUser } from '@/lib/session';
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Already signed in? Skip the marketing page and go straight to the workspace.
   const user = await getCurrentUser();
   if (user) {
-    const target = user.isPlatformAdmin
-      ? '/platform/organizations'
-      : user.kind === 'donor'
-        ? '/me/donations'
-        : '/dashboard';
-    redirect({ href: target, locale: locale as 'ar' | 'fr' | 'en' });
+    redirect({ href: getPostLoginPath(user), locale: locale as 'ar' | 'fr' | 'en' });
   }
 
   return <LandingInner />;
