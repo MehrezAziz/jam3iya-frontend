@@ -10,6 +10,7 @@ export interface BeneficiarySummaryItem {
   region: string | null;
   city: string | null;
   publicAlias: string | null;
+  isOrphan: boolean;
   departmentId: string | null;
   departmentName: string | null;
   createdAt: string;
@@ -30,13 +31,61 @@ export function listBeneficiaries(params: {
   departmentId?: string;
   limit?: number;
   offset?: number;
+  fields?: BeneficiaryLookupField[];
 } = {}): Promise<ListResponse<BeneficiarySummaryItem>> {
   const sp = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') sp.set(k, String(v));
+    if (v === undefined || v === null || v === '') return;
+    if (k === 'fields' && Array.isArray(v)) {
+      sp.set('fields', v.join(','));
+      return;
+    }
+    sp.set(k, String(v));
   });
   const qs = sp.toString();
   return api(`/beneficiaries${qs ? `?${qs}` : ''}`);
+}
+
+export type BeneficiaryLookupField = 'name' | 'phone' | 'cin' | 'code';
+
+export interface TextHighlight {
+  start: number;
+  end: number;
+}
+
+export interface BeneficiaryDonationPickHit {
+  id: string;
+  code: string;
+  publicAlias: string | null;
+  status: BeneficiaryStatus;
+  isOrphan: boolean;
+  fullName: string;
+  phone: string | null;
+  cin: string | null;
+  phoneHighlight?: TextHighlight | null;
+  cinHighlight?: TextHighlight | null;
+  /** False when searching with campaignId and beneficiary is not on the campaign list. */
+  inCampaign: boolean;
+  /** Total already allocated to this beneficiary on the selected campaign (millimes). */
+  priorAllocatedMinor: number;
+}
+
+export function searchBeneficiariesForDonationPick(params: {
+  q: string;
+  fields: BeneficiaryLookupField[];
+  campaignId?: string;
+  limit?: number;
+}): Promise<{ items: BeneficiaryDonationPickHit[] }> {
+  const sp = new URLSearchParams();
+  sp.set('q', params.q);
+  sp.set('fields', params.fields.join(','));
+  if (params.campaignId) sp.set('campaignId', params.campaignId);
+  if (params.limit != null) sp.set('limit', String(params.limit));
+  return api(`/beneficiaries/donation-pick-search?${sp.toString()}`);
+}
+
+export function rebuildBeneficiarySearchIndex(): Promise<{ rebuilt: number }> {
+  return api('/beneficiaries/rebuild-search-index', { method: 'POST' });
 }
 
 export function createBeneficiary(input: {
@@ -53,6 +102,7 @@ export function createBeneficiary(input: {
   publicAlias?: string;
   departmentId: string;
   reason?: string;
+  isOrphan?: boolean;
 }): Promise<{ id: string; code: string }> {
   return api('/beneficiaries', { method: 'POST', body: JSON.stringify(input) });
 }
@@ -85,6 +135,7 @@ export function updateBeneficiary(
     hasWhiteNotebook: boolean;
     hasMonthlyGrant: boolean;
     photoConsent: boolean;
+    isOrphan: boolean;
   }>,
 ) {
   return api(`/beneficiaries/${id}`, { method: 'PATCH', body: JSON.stringify(input) });

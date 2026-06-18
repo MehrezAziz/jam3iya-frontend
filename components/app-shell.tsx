@@ -20,6 +20,7 @@ import {
   Building2,
   Boxes,
   Megaphone,
+  ArrowRightLeft,
   Menu,
   X,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ const STAFF_NAV: NavItem[] = [
   { href: '/beneficiaries', labelKey: 'nav.beneficiaries', icon: <Users className="h-4 w-4" /> },
   { href: '/donations', labelKey: 'nav.donations', icon: <HandCoins className="h-4 w-4" /> },
   { href: '/distributions', labelKey: 'nav.distributions', icon: <PackageOpen className="h-4 w-4" /> },
+  { href: '/transfers', labelKey: 'nav.transfers', icon: <ArrowRightLeft className="h-4 w-4" /> },
   { href: '/inventory', labelKey: 'nav.inventory', icon: <Boxes className="h-4 w-4" /> },
   { href: '/campaigns', labelKey: 'nav.campaigns', icon: <Megaphone className="h-4 w-4" /> },
   { href: '/bills', labelKey: 'nav.bills', icon: <Receipt className="h-4 w-4" /> },

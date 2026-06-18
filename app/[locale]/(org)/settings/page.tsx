@@ -31,6 +31,7 @@ import {
   type Department,
   type OrganizationProfile,
 } from '@/lib/api/tenancy';
+import { rebuildBeneficiarySearchIndex } from '@/lib/api/beneficiaries';
 import { useDepartmentScope } from '@/lib/department-scope';
 
 function parseDepartmentApiError(
@@ -134,6 +135,7 @@ export default function SettingsPage() {
             />
           ) : null}
           <DepartmentsList departments={deptsQ.data ?? []} t={t} />
+          <SearchIndexCard t={t} />
           {orgQ.data ? (
             <OrgLogoCard
               org={orgQ.data}
@@ -698,6 +700,36 @@ function DepartmentCreateCard({
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SearchIndexCard({ t }: { t: ReturnType<typeof useTranslations> }) {
+  const [pending, setPending] = useState(false);
+
+  async function rebuild() {
+    setPending(true);
+    try {
+      const result = await rebuildBeneficiarySearchIndex();
+      toast.success(t('settings.rebuildSearchIndexDone', { count: result.rebuilt }));
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{t('settings.rebuildSearchIndex')}</CardTitle>
+        <CardDescription>{t('settings.rebuildSearchIndexHint')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button type="button" variant="outline" disabled={pending} onClick={() => void rebuild()}>
+          {pending ? t('common.loading') : t('settings.rebuildSearchIndexBtn')}
+        </Button>
       </CardContent>
     </Card>
   );

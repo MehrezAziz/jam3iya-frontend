@@ -36,6 +36,7 @@ const schema = z.object({
   publicAlias: z.string().max(120).optional(),
   departmentId: z.string().uuid(),
   reason: z.string().max(2000).optional(),
+  isOrphan: z.boolean().optional(),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -51,7 +52,7 @@ export default function NewBeneficiaryPage() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { gender: 'male', maritalStatus: 'single' },
+    defaultValues: { gender: 'male', maritalStatus: 'single', isOrphan: false },
   });
 
   const { data: governorates } = useQuery<Governorate[]>({
@@ -222,6 +223,13 @@ export default function NewBeneficiaryPage() {
                   ))}
                 </Select>
               )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4" {...form.register('isOrphan')} />
+                {t('beneficiaries.orphan')}
+              </label>
+              <p className="mt-1 text-xs text-muted-foreground">{t('beneficiaries.orphanHint')}</p>
             </div>
             <div className="md:col-span-2">
               <Label>{t('beneficiaries.reason')}</Label>

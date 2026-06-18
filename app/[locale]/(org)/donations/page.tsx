@@ -12,12 +12,14 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { listDonations, type DonationItem } from '@/lib/api/donations';
 import { issueDonationReceipt } from '@/lib/api/bills';
+import { ReceiptPreviewDialog } from '@/components/receipt-preview-dialog';
 import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
 import { listCampaigns } from '@/lib/api/campaigns';
 import { formatTndMinor, formatGregorianAndHijri } from '@/lib/utils';
 import { CopyableId } from '@/components/copyable-id';
+import { DonationDetailDialog } from '@/components/donation-detail-dialog';
 import { DepartmentFilter } from '@/components/department-filter';
 import { useDepartmentScope } from '@/lib/department-scope';
 import { useLocale } from 'next-intl';
@@ -41,6 +43,7 @@ export default function DonationsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { lockedDepartmentId } = useDepartmentScope();
   const effectiveDepartmentId = lockedDepartmentId ?? (departmentId || undefined);
 
@@ -157,35 +160,63 @@ export default function DonationsPage() {
           ) : (
             <ul className="divide-y divide-border">
               {data.items.map((d) => (
-                <li key={d.id} className="px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <CopyableId id={d.id} label={t('donations.donationId')} />
-                      <div className="font-medium">
-                        {d.isAnonymous ? t('donations.anonymous') : d.donorNameSnapshot ?? d.donorId ?? '—'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatGregorianAndHijri(d.receivedAt, locale)}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="muted">{d.kind}</Badge>
-                        {d.spendCategory ? (
-                          <Badge variant="muted">{d.spendCategory.replace(/_/g, ' ')}</Badge>
+                <li key={d.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="w-full cursor-pointer px-4 py-3 text-start hover:bg-muted/50"
+                    onClick={() => setDetailId(d.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setDetailId(d.id);
+                      }
+                    }}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                          <CopyableId id={d.id} label={t('donations.donationId')} />
+                        </div>
+                        <div className="font-medium">
+                          {d.isAnonymous ? t('donations.anonymous') : d.donorNameSnapshot ?? d.donorId ?? '—'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatGregorianAndHijri(d.receivedAt, locale)}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge variant="muted">{d.kind}</Badge>
+                          {d.spendCategory ? (
+                            <Badge variant="muted">{d.spendCategory.replace(/_/g, ' ')}</Badge>
+                          ) : null}
+                          {d.campaignName ? <Badge variant="default">{d.campaignName}</Badge> : null}
+                          {d.departmentName ? (
+                            <Badge variant="muted">{d.departmentName}</Badge>
+                          ) : null}
+                        </div>
+                        {(d.itemGrants?.length ?? 0) > 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            {d.itemGrants!.map((g) => `${g.quantity} ${g.unit} ${g.itemName}`).join(', ')}
+                          </p>
                         ) : null}
-                        {d.campaignName ? <Badge variant="default">{d.campaignName}</Badge> : null}
-                        {d.departmentName ? (
-                          <Badge variant="muted">{d.departmentName}</Badge>
+                        {d.notes ? (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            <span className="font-medium">{t('donations.notes')}:</span> {d.notes}
+                          </p>
                         ) : null}
                       </div>
-                      {d.notes ? (
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">{t('donations.notes')}:</span> {d.notes}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {d.kind === 'cash' ? <DonationPrintButton donation={d} t={t} /> : null}
-                      <span className="font-semibold tabular-nums">{formatTndMinor(d.amountMinor)}</span>
+                      <div
+                        className="flex flex-col items-end gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        {d.kind === 'cash' && d.amountMinor > 0 ? (
+                          <DonationPrintButton donation={d} t={t} />
+                        ) : null}
+                        <span className="font-semibold tabular-nums">
+                          {d.amountMinor > 0 ? formatTndMinor(d.amountMinor) : '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -194,6 +225,8 @@ export default function DonationsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DonationDetailDialog donationId={detailId} onClose={() => setDetailId(null)} />
     </div>
   );
 }
@@ -205,6 +238,8 @@ function DonationPrintButton({
   donation: DonationItem;
   t: (k: string) => string;
 }) {
+  const [previewBillId, setPreviewBillId] = useState<string | null>(null);
+
   const issueMut = useMutation({
     mutationFn: async () => {
       if (donation.receiptBill) return donation.receiptBill;
@@ -221,26 +256,29 @@ function DonationPrintButton({
     onError: (e) => toast.error((e as Error).message),
   });
 
-  async function handlePrint() {
+  async function handlePreview() {
     try {
       const bill = await issueMut.mutateAsync();
-      window.open(`/bills/print?id=${bill.id}`, '_blank', 'noopener');
+      setPreviewBillId(bill.id);
     } catch {
       /* handled */
     }
   }
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      className="h-8 w-8"
-      onClick={handlePrint}
-      disabled={issueMut.isPending}
-      title={t('donations.printReceipt')}
-    >
-      <Printer className="h-4 w-4" />
-    </Button>
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8"
+        onClick={handlePreview}
+        disabled={issueMut.isPending}
+        title={t('donations.printReceipt')}
+      >
+        <Printer className="h-4 w-4" />
+      </Button>
+      <ReceiptPreviewDialog billId={previewBillId} onClose={() => setPreviewBillId(null)} />
+    </>
   );
 }

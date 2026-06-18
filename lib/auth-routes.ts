@@ -20,6 +20,7 @@ export function isProtectedPath(pathname: string): boolean {
     '/beneficiaries',
     '/donations',
     '/distributions',
+    '/transfers',
     '/inventory',
     '/campaigns',
     '/bills',

@@ -75,6 +75,7 @@ export function createInventoryItem(input: {
   defaultQuantity?: number;
   trackExpiry?: boolean;
   minStock?: number;
+  initialStock?: number;
   notes?: string;
 }): Promise<{ id: string; name: string }> {
   return api('/inventory/items', { method: 'POST', body: JSON.stringify(input) });
@@ -93,6 +94,13 @@ export function updateInventoryItem(
   }>,
 ): Promise<{ id: string }> {
   return api(`/inventory/items/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function setInventoryItemStock(
+  id: string,
+  input: { quantity: number; reason?: string },
+): Promise<{ currentStock: number }> {
+  return api(`/inventory/items/${id}/stock`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
 export function createStockLot(input: {

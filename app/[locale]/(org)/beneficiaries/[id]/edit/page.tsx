@@ -24,6 +24,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
   const t = useTranslations();
   const router = useRouter();
   const [form, setForm] = useState<Record<string, string>>({});
+  const [isOrphan, setIsOrphan] = useState(false);
   const [cinError, setCinError] = useState<string | null>(null);
   const [pin, setPin] = useState('');
 
@@ -66,6 +67,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
         region: form.region || undefined,
         city: form.city || undefined,
         publicAlias: form.publicAlias || undefined,
+        isOrphan,
       });
     },
     onSuccess: () => {
@@ -92,6 +94,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
     region: string | null;
     city: string | null;
     publicAlias: string | null;
+    isOrphan?: boolean;
     code: string;
   } | undefined;
 
@@ -110,6 +113,7 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
       city: b.city ?? '',
       publicAlias: b.publicAlias ?? '',
     });
+    setIsOrphan(!!b.isOrphan);
   }, [b]);
 
   function set(key: string, value: string) {
@@ -218,6 +222,17 @@ export default function EditBeneficiaryPage({ params }: { params: Promise<{ id: 
           </div>
           <Field label={t('beneficiaries.region')} value={form.region ?? ''} onChange={(v) => set('region', v)} />
           <Field label={t('beneficiaries.city')} value={form.city ?? ''} onChange={(v) => set('city', v)} />
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={isOrphan}
+                onChange={(e) => setIsOrphan(e.target.checked)}
+              />
+              {t('beneficiaries.orphan')}
+            </label>
+          </div>
           <div className="sm:col-span-2 flex gap-2">
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
               {t('common.update')}

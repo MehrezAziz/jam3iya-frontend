@@ -22,6 +22,44 @@ export interface DonationItem {
     series: string;
     yearIssued: number;
   } | null;
+  itemGrants?: Array<{
+    id: string;
+    quantity: number;
+    unit: string;
+    itemName: string;
+    beneficiaryCode: string;
+    beneficiaryName: string;
+  }>;
+}
+
+export interface DonationDetail extends DonationItem {
+  donorDisplayName: string | null;
+  donorFiscalIdSnapshot: string | null;
+  inKindItem: {
+    id: string;
+    name: string;
+    unit: string;
+    quantity: number | null;
+    estimatedValueMinor: number | null;
+  } | null;
+  beneficiarySplits: Array<{
+    id: string;
+    amountMinor: number;
+    distributedMinor: number;
+    currency: string;
+    paidAt: string | null;
+    beneficiaryCode: string;
+    beneficiaryName: string;
+  }>;
+  itemGrants: Array<{
+    id: string;
+    quantity: number;
+    unit: string;
+    itemId: string;
+    itemName: string;
+    beneficiaryCode: string;
+    beneficiaryName: string;
+  }>;
 }
 
 export interface ListDonationsParams {
@@ -49,6 +87,10 @@ export function listDonations(params: ListDonationsParams = {}) {
   return api<{ total: number; items: DonationItem[]; limit: number; offset: number }>(
     `/donations${qs ? `?${qs}` : ''}`,
   );
+}
+
+export function getDonation(id: string): Promise<DonationDetail> {
+  return api(`/donations/${id}`);
 }
 
 export interface DonationStats {
@@ -102,6 +144,8 @@ export function createCashDonation(input: {
   donorFiscalIdSnapshot?: string;
   isAnonymous?: boolean;
   notes?: string;
+  beneficiarySplits?: Array<{ beneficiaryId: string; amountMinor: number }>;
+  itemGrants?: Array<{ beneficiaryId: string; itemId: string; quantity: number }>;
 }) {
   return api('/donations/cash', { method: 'POST', body: JSON.stringify(input) });
 }

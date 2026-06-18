@@ -22,6 +22,9 @@ import {
   type InventoryItemListEntry,
 } from '@/lib/api/inventory';
 
+const PRESET_UNITS = ['kg', 'm', 'cm', 'nbr'] as const;
+const CUSTOM = '__custom__';
+
 const createSchema = z.object({
   name: z.string().min(2).max(160),
   category: z.string().min(2).max(80),
@@ -30,6 +33,7 @@ const createSchema = z.object({
   defaultQuantity: z.string().optional(),
   trackExpiry: z.boolean(),
   minStock: z.string().optional(),
+  stock: z.string().optional(),
   notes: z.string().max(1000).optional(),
 });
 
@@ -41,6 +45,10 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('');
   const [showNew, setShowNew] = useState(false);
+  const [categoryChoice, setCategoryChoice] = useState('food');
+  const [customCategory, setCustomCategory] = useState('');
+  const [unitChoice, setUnitChoice] = useState<string>('kg');
+  const [customUnit, setCustomUnit] = useState('');
 
   const q = useQuery({
     queryKey: ['inventory', 'items', { search, category }],
@@ -62,6 +70,10 @@ export default function InventoryPage() {
       toast.success(t('inventory.itemCreated'));
       setShowNew(false);
       form.reset({ name: '', category: 'food', unit: 'kg', trackExpiry: false });
+      setCategoryChoice('food');
+      setCustomCategory('');
+      setUnitChoice('kg');
+      setCustomUnit('');
       qc.invalidateQueries({ queryKey: ['inventory'] });
     },
     onError: (err) => toast.error((err as Error).message),
@@ -92,14 +104,22 @@ export default function InventoryPage() {
               onSubmit={form.handleSubmit((values) => {
                 const dq = values.defaultQuantity ? Number(values.defaultQuantity) : undefined;
                 const ms = values.minStock ? Number(values.minStock) : undefined;
+                const stock = values.stock ? Number(values.stock) : undefined;
+                const category =
+                  categoryChoice === CUSTOM ? customCategory.trim() : categoryChoice;
+                const unit = unitChoice === CUSTOM ? customUnit.trim() : unitChoice;
+                if (!category || category.length < 2) return;
+                if (!unit) return;
                 createMutation.mutate({
                   name: values.name,
-                  category: values.category,
-                  unit: values.unit,
+                  category,
+                  unit,
                   trackExpiry: values.trackExpiry,
                   notes: values.notes,
                   defaultQuantity: dq && Number.isFinite(dq) && dq > 0 ? dq : undefined,
                   minStock: ms != null && Number.isFinite(ms) && ms >= 0 ? ms : undefined,
+                  initialStock:
+                    stock != null && Number.isFinite(stock) && stock > 0 ? stock : undefined,
                 });
               })}
             >
@@ -109,22 +129,63 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="category">{t('inventory.category')}</Label>
-                <Input
+                <Select
                   id="category"
-                  list="category-suggestions"
-                  placeholder={t('inventory.categoryHint')}
-                  {...form.register('category')}
-                />
-                <datalist id="category-suggestions">
+                  value={categoryChoice}
+                  onChange={(e) => {
+                    setCategoryChoice(e.target.value);
+                    if (e.target.value !== CUSTOM) {
+                      form.setValue('category', e.target.value);
+                    }
+                  }}
+                >
                   {knownCategories.map((c) => (
-                    <option key={c} value={c} />
+                    <option key={c} value={c}>
+                      {c.replace(/_/g, ' ')}
+                    </option>
                   ))}
-                </datalist>
-                <p className="text-xs text-muted-foreground">{t('inventory.categoryFreeHint')}</p>
+                  <option value={CUSTOM}>{t('inventory.customCategory')}</option>
+                </Select>
+                {categoryChoice === CUSTOM ? (
+                  <Input
+                    placeholder={t('inventory.categoryHint')}
+                    value={customCategory}
+                    onChange={(e) => {
+                      setCustomCategory(e.target.value);
+                      form.setValue('category', e.target.value);
+                    }}
+                  />
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="unit">{t('inventory.unit')}</Label>
-                <Input id="unit" placeholder="kg, box, piece, L" {...form.register('unit')} />
+                <Select
+                  id="unit"
+                  value={unitChoice}
+                  onChange={(e) => {
+                    setUnitChoice(e.target.value);
+                    if (e.target.value !== CUSTOM) {
+                      form.setValue('unit', e.target.value);
+                    }
+                  }}
+                >
+                  {PRESET_UNITS.map((u) => (
+                    <option key={u} value={u}>
+                      {t(`inventory.unit_${u}`)}
+                    </option>
+                  ))}
+                  <option value={CUSTOM}>{t('inventory.customUnit')}</option>
+                </Select>
+                {unitChoice === CUSTOM ? (
+                  <Input
+                    placeholder={t('inventory.customUnitPlaceholder')}
+                    value={customUnit}
+                    onChange={(e) => {
+                      setCustomUnit(e.target.value);
+                      form.setValue('unit', e.target.value);
+                    }}
+                  />
+                ) : null}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="defaultQuantity">{t('inventory.defaultQuantity')}</Label>
@@ -136,6 +197,11 @@ export default function InventoryPage() {
                   {...form.register('defaultQuantity')}
                 />
                 <p className="text-xs text-muted-foreground">{t('inventory.defaultQuantityHint')}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="stock">{t('inventory.stock')}</Label>
+                <Input id="stock" type="number" step="any" min="0" placeholder="0" {...form.register('stock')} />
+                <p className="text-xs text-muted-foreground">{t('inventory.stockHint')}</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="minStock">{t('inventory.minStock')}</Label>

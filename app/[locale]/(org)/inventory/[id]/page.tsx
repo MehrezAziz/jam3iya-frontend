@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import {
@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MoneyInput } from '@/components/ui/money-input';
+import { Select } from '@/components/ui/select';
 import { DateInput } from '@/components/ui/date-input';
 import { Link } from '@/i18n/navigation';
 import {
@@ -30,6 +31,9 @@ import {
   createStockLot,
   updateStockLot,
   adjustStockLot,
+  updateInventoryItem,
+  setInventoryItemStock,
+  SUGGESTED_INVENTORY_CATEGORIES,
 } from '@/lib/api/inventory';
 import { tndToMinor, minorToTnd, DEFAULT_CURRENCY } from '@/lib/money';
 
@@ -52,14 +56,80 @@ export default function InventoryItemPage({ params }: { params: Promise<{ id: st
   const qc = useQueryClient();
   const [showReceive, setShowReceive] = useState(false);
   const [editingLotId, setEditingLotId] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editUnit, setEditUnit] = useState('');
+  const [editMinStock, setEditMinStock] = useState('');
+  const [editDefaultQty, setEditDefaultQty] = useState('');
+  const [editTrackExpiry, setEditTrackExpiry] = useState(false);
+  const [editNotes, setEditNotes] = useState('');
+  const [setStockQty, setSetStockQty] = useState('');
+  const [setStockReason, setSetStockReason] = useState('');
 
   const itemQ = useQuery({ queryKey: ['inventory', id], queryFn: () => getInventoryItem(id) });
   const item = itemQ.data;
 
   const form = useForm<ReceiveForm>({
     resolver: zodResolver(receiveSchema),
-    defaultValues: { quantity: item?.defaultQuantity ? String(item.defaultQuantity) : '' },
+    defaultValues: { quantity: '' },
   });
+
+  useEffect(() => {
+    if (item != null) {
+      setSetStockQty(String(item.currentStock));
+    }
+  }, [item?.currentStock, item?.id]);
+
+  const setStockMut = useMutation({
+    mutationFn: () => {
+      const qty = Number(setStockQty);
+      if (!Number.isFinite(qty) || qty < 0) {
+        throw new Error(t('inventory.setStockInvalid'));
+      }
+      return setInventoryItemStock(id, {
+        quantity: qty,
+        reason: setStockReason.trim() || undefined,
+      });
+    },
+    onSuccess: (res) => {
+      toast.success(t('inventory.stockUpdated', { n: res.currentStock }));
+      setSetStockQty(String(res.currentStock));
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const updateItemMut = useMutation({
+    mutationFn: () =>
+      updateInventoryItem(id, {
+        name: editName.trim(),
+        category: editCategory.trim(),
+        unit: editUnit.trim(),
+        minStock: editMinStock ? Number(editMinStock) : null,
+        defaultQuantity: editDefaultQty ? Number(editDefaultQty) : null,
+        trackExpiry: editTrackExpiry,
+        notes: editNotes.trim() || null,
+      }),
+    onSuccess: () => {
+      toast.success(t('common.successUpdated'));
+      setEditingItem(false);
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  function startEditItem() {
+    if (!item) return;
+    setEditName(item.name);
+    setEditCategory(item.category);
+    setEditUnit(item.unit);
+    setEditMinStock(item.minStock != null ? String(item.minStock) : '');
+    setEditDefaultQty(item.defaultQuantity != null ? String(item.defaultQuantity) : '');
+    setEditTrackExpiry(item.trackExpiry);
+    setEditNotes(item.notes ?? '');
+    setEditingItem(true);
+  }
 
   const receiveMutation = useMutation({
     mutationFn: (values: ReceiveForm) => {
@@ -109,11 +179,115 @@ export default function InventoryItemPage({ params }: { params: Promise<{ id: st
             </p>
           ) : null}
         </div>
-        <Button onClick={() => setShowReceive((v) => !v)}>
-          <PackagePlus className="h-4 w-4" />
-          {t('inventory.receiveStock')}
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={startEditItem}>
+            <Pencil className="h-4 w-4" />
+            {t('inventory.editItem')}
+          </Button>
+          <Button onClick={() => setShowReceive((v) => !v)}>
+            <PackagePlus className="h-4 w-4" />
+            {t('inventory.receiveStock')}
+          </Button>
+        </div>
       </header>
+
+      {item ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t('inventory.setStockTitle')}</CardTitle>
+            <CardDescription>{t('inventory.setStockHint')}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="setStockQty">{t('inventory.currentStock')}</Label>
+              <Input
+                id="setStockQty"
+                type="number"
+                step="any"
+                min="0"
+                className="w-32"
+                value={setStockQty}
+                onChange={(e) => setSetStockQty(e.target.value)}
+              />
+            </div>
+            <div className="min-w-[12rem] flex-1 space-y-1.5">
+              <Label htmlFor="setStockReason">{t('inventory.adjustReason')}</Label>
+              <Input
+                id="setStockReason"
+                placeholder={t('inventory.setStockReasonPlaceholder')}
+                value={setStockReason}
+                onChange={(e) => setSetStockReason(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={() => setStockMut.mutate()}
+              disabled={setStockMut.isPending}
+            >
+              <Save className="h-4 w-4" />
+              {t('common.save')}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {editingItem && item ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('inventory.editItem')}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>{t('inventory.itemName')}</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('inventory.category')}</Label>
+              <Select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
+                {[...SUGGESTED_INVENTORY_CATEGORIES, editCategory]
+                  .filter((v, i, a) => a.indexOf(v) === i)
+                  .map((c) => (
+                    <option key={c} value={c}>
+                      {c.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('inventory.unit')}</Label>
+              <Input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('inventory.defaultQuantity')}</Label>
+              <Input value={editDefaultQty} onChange={(e) => setEditDefaultQty(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('inventory.minStock')}</Label>
+              <Input value={editMinStock} onChange={(e) => setEditMinStock(e.target.value)} />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editTrackExpiry}
+                onChange={(e) => setEditTrackExpiry(e.target.checked)}
+              />
+              {t('inventory.trackExpiry')}
+            </label>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>{t('inventory.notes')}</Label>
+              <Input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
+            </div>
+            <div className="flex gap-2 md:col-span-2">
+              <Button type="button" onClick={() => updateItemMut.mutate()} disabled={updateItemMut.isPending}>
+                {t('common.save')}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setEditingItem(false)}>
+                {t('common.cancel')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {showReceive && (
         <Card>

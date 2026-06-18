@@ -52,6 +52,7 @@ import {
   deleteSpouse,
   getBeneficiaryFull,
   getBeneficiarySummary,
+  updateBeneficiary,
   getSpouse,
   listChildren,
   listDiseases,
@@ -83,6 +84,7 @@ interface BeneficiarySummary {
   region: string | null;
   city: string | null;
   publicAlias: string | null;
+  isOrphan?: boolean;
   createdAt: string;
   lastVerifiedAt: string | null;
   validUntil: string | null;
@@ -107,6 +109,16 @@ export default function BeneficiaryPage({ params }: { params: Promise<{ id: stri
   const summary = useQuery({
     queryKey: ['beneficiary', id, 'summary'],
     queryFn: () => getBeneficiarySummary(id) as Promise<BeneficiarySummary>,
+  });
+
+  const qc = useQueryClient();
+  const orphanMut = useMutation({
+    mutationFn: (isOrphan: boolean) => updateBeneficiary(id, { isOrphan }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['beneficiary', id, 'summary'] });
+      toast.success(t('common.successUpdated'));
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const accessQ = useQuery({
@@ -188,6 +200,9 @@ export default function BeneficiaryPage({ params }: { params: Promise<{ id: stri
               {s?.code ?? '...'}
             </h1>
             {s?.status ? <StatusBadge status={s.status} t={t} /> : null}
+            {s?.isOrphan ? (
+              <Badge variant="warning">{t('beneficiaries.orphan')}</Badge>
+            ) : null}
           </div>
           {s?.publicAlias ? (
             <p className="text-sm text-muted-foreground">
@@ -221,6 +236,18 @@ export default function BeneficiaryPage({ params }: { params: Promise<{ id: stri
               </Field>
               <Field icon={<ShieldAlert className="h-3.5 w-3.5" />} label={t('beneficiaries.status')}>
                 <StatusBadge status={s.status} t={t} />
+              </Field>
+              <Field icon={<Heart className="h-3.5 w-3.5" />} label={t('beneficiaries.orphan')}>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={!!s.isOrphan}
+                    disabled={orphanMut.isPending}
+                    onChange={(e) => orphanMut.mutate(e.target.checked)}
+                  />
+                  {s.isOrphan ? t('common.yes') : t('common.no')}
+                </label>
               </Field>
               <Field icon={<MapPin className="h-3.5 w-3.5" />} label={t('beneficiaries.region')}>
                 {s.region ?? dash}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -11,6 +12,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   cancelLabel: string;
   destructive?: boolean;
+  /** When destructive, styles the dialog panel as a warning alert. */
+  alertTone?: 'default' | 'destructive';
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -27,6 +30,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   destructive,
+  alertTone = 'default',
   loading,
   onConfirm,
   onCancel,
@@ -68,7 +72,12 @@ export function ConfirmDialog({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full max-w-md rounded-lg border border-border bg-background p-6 text-foreground shadow-2xl outline-none"
+        className={cn(
+          'relative w-full max-w-md rounded-lg border bg-background p-6 text-foreground shadow-2xl outline-none',
+          alertTone === 'destructive'
+            ? 'border-destructive/60 bg-destructive/5 ring-2 ring-destructive/25'
+            : 'border-border',
+        )}
       >
         <h2 id="confirm-dialog-title" className="text-lg font-semibold">
           {title}

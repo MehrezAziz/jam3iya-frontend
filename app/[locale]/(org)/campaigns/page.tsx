@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Calendar, Eye, EyeOff, Megaphone, Pencil, Plus, Sparkles, Target, Wallet } from 'lucide-react';
+import { Calendar, Eye, EyeOff, Megaphone, Pencil, Plus, Sparkles, Target, Trash2, Users, Wallet } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import type { ApiError } from '@/lib/api/client';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +23,29 @@ import {
   createCampaign,
   updateCampaign,
   listCampaignDonations,
+  listCampaignBeneficiaries,
+  addCampaignBeneficiary,
+  quickAddCampaignBeneficiary,
+  removeCampaignBeneficiary,
+  listCampaignBeneficiaryAllocations,
+  updateCampaignBeneficiarySplit,
+  markCampaignBeneficiarySplitPaid,
+  unmarkCampaignBeneficiarySplitPaid,
+  type CampaignBeneficiaryAllocation,
+  type CampaignBeneficiaryAllocationSplit,
   listOccasions,
   createOccasion,
   type CampaignListEntry,
+  type BeneficiaryLookupField,
 } from '@/lib/api/campaigns';
+import {
+  searchBeneficiariesForDonationPick,
+  type BeneficiaryDonationPickHit,
+} from '@/lib/api/beneficiaries';
+import { BeneficiaryDonationPickRow } from '@/components/beneficiary-donation-pick-row';
 import { tndToMinor, formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
+
+const LOOKUP_FIELDS: BeneficiaryLookupField[] = ['name', 'phone', 'cin', 'code'];
 
 const campaignSchema = z
   .object({
@@ -39,6 +59,7 @@ const campaignSchema = z
     targetAmountTnd: z.string().optional(),
     state: z.enum(['draft', 'active', 'closed']),
     visibleOnPublicPage: z.boolean(),
+    beneficiaryLookupFields: z.array(z.enum(['name', 'phone', 'cin', 'code'])).min(1),
   })
   .superRefine((d, ctx) => {
     if (d.noEndDate) return;
@@ -100,6 +121,7 @@ export default function CampaignsPage() {
       startsAt: '',
       endsAt: '',
       noEndDate: false,
+      beneficiaryLookupFields: ['name', 'phone', 'cin'],
     },
   });
   const noEndDate = cForm.watch('noEndDate');
@@ -138,6 +160,7 @@ export default function CampaignsPage() {
         currency: DEFAULT_CURRENCY,
         visibleOnPublicPage: v.visibleOnPublicPage,
         state: v.state,
+        beneficiaryLookupFields: v.beneficiaryLookupFields,
       });
     },
     onSuccess: () => {
@@ -225,6 +248,7 @@ export default function CampaignsPage() {
                   </label>
                 </div>
                 {!noEndDate ? <DateInput id="cend" {...cForm.register('endsAt')} /> : null}
+                <p className="text-xs text-muted-foreground">{t('campaigns.endsAtAutoCloseHint')}</p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="ctarget">
@@ -254,6 +278,33 @@ export default function CampaignsPage() {
               <div className="flex items-center gap-2 md:col-span-2">
                 <input id="cpub" type="checkbox" className="h-4 w-4" {...cForm.register('visibleOnPublicPage')} />
                 <Label htmlFor="cpub">{t('campaigns.visibleOnPublic')}</Label>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>{t('campaigns.beneficiaryLookupFields')}</Label>
+                <p className="text-xs text-muted-foreground">{t('campaigns.beneficiaryLookupFieldsHint')}</p>
+                <div className="flex flex-wrap gap-3">
+                  {LOOKUP_FIELDS.map((field) => {
+                    const selected = cForm.watch('beneficiaryLookupFields') ?? [];
+                    return (
+                      <label key={field} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={selected.includes(field)}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...selected, field]
+                              : selected.filter((f) => f !== field);
+                            if (next.length > 0) {
+                              cForm.setValue('beneficiaryLookupFields', next, { shouldValidate: true });
+                            }
+                          }}
+                        />
+                        {t(`campaigns.lookupField_${field}`)}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="cdesc">{t('campaigns.description')}</Label>
@@ -399,12 +450,16 @@ function CampaignCard({
   const [targetTnd, setTargetTnd] = useState(
     c.targetAmountMinor ? String(c.targetAmountMinor / 1000) : '',
   );
+  const [lookupFields, setLookupFields] = useState<BeneficiaryLookupField[]>(
+    c.beneficiaryLookupFields?.length ? c.beneficiaryLookupFields : ['name', 'phone', 'cin'],
+  );
   const saveMut = useMutation({
     mutationFn: () =>
       updateCampaign(c.id, {
         startsAt,
         endsAt: noEndDate ? null : endsAt,
         targetAmountMinor: targetTnd ? tndToMinor(Number(targetTnd)) : null,
+        beneficiaryLookupFields: lookupFields,
       }),
     onSuccess: () => {
       toast.success(t('common.successUpdated'));
@@ -469,6 +524,27 @@ function CampaignCard({
             <Label>{t('campaigns.targetAmount')}</Label>
             <MoneyInput value={targetTnd} onValueChange={(v) => setTargetTnd(String(v))} />
           </div>
+          <div className="space-y-2">
+            <Label>{t('campaigns.beneficiaryLookupFields')}</Label>
+            <div className="flex flex-wrap gap-3">
+              {LOOKUP_FIELDS.map((field) => (
+                <label key={field} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={lookupFields.includes(field)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...lookupFields, field]
+                        : lookupFields.filter((f) => f !== field);
+                      if (next.length > 0) setLookupFields(next);
+                    }}
+                  />
+                  {t(`campaigns.lookupField_${field}`)}
+                </label>
+              ))}
+            </div>
+          </div>
           <Button type="submit" size="sm" disabled={saveMut.isPending}>
             {t('common.update')}
           </Button>
@@ -495,6 +571,20 @@ function CampaignCard({
             distributed: formatMoney(distributed, c.currency),
           })}
         </p>
+        <div className="mt-2 space-y-1 border-t border-emerald-200/50 pt-2 dark:border-emerald-900/40">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">{t('campaigns.reservedAmount')}</span>
+            <span className="font-medium tabular-nums text-amber-800 dark:text-amber-200">
+              {formatMoney(c.allocatedAmountMinor ?? 0, c.currency)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-muted-foreground">{t('campaigns.unassignedAmountLabel')}</span>
+            <span className="font-medium tabular-nums">
+              {formatMoney(c.unassignedAmountMinor ?? 0, c.currency)}
+            </span>
+          </div>
+        </div>
       </div>
       <div className="mt-3 space-y-1">
         <div className="flex items-center justify-between text-xs">
@@ -513,6 +603,12 @@ function CampaignCard({
       <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
         {c.visibleOnPublicPage ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
         {c.visibleOnPublicPage ? t('campaigns.public') : t('campaigns.notPublic')}
+      </div>
+      <div className="mt-3">
+        <CampaignBeneficiariesPanel campaign={c} onUpdated={onUpdated} />
+      </div>
+      <div className="mt-3">
+        <CampaignBeneficiaryAllocationsPanel campaignId={c.id} currency={c.currency} onUpdated={onUpdated} />
       </div>
       <div className="mt-3">
         <Button type="button" variant="outline" size="sm" onClick={() => setShowDonations((v) => !v)}>
@@ -544,6 +640,495 @@ function CampaignCard({
         )}
       </div>
     </li>
+  );
+}
+
+function CampaignBeneficiaryAllocationsPanel({
+  campaignId,
+  currency,
+  onUpdated,
+}: {
+  campaignId: string;
+  currency: string;
+  onUpdated: () => void;
+}) {
+  const t = useTranslations();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
+  const [payConfirm, setPayConfirm] = useState<{
+    splitId: string;
+    amountMinor: number;
+    beneficiaryName: string;
+  } | null>(null);
+  const [cancelPayConfirm, setCancelPayConfirm] = useState<{
+    splitId: string;
+    amountMinor: number;
+    beneficiaryName: string;
+  } | null>(null);
+
+  const allocQ = useQuery({
+    queryKey: ['campaign-beneficiary-allocations', campaignId],
+    queryFn: () => listCampaignBeneficiaryAllocations(campaignId),
+    enabled: open,
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ splitId, amountMinor }: { splitId: string; amountMinor: number }) =>
+      updateCampaignBeneficiarySplit(campaignId, splitId, amountMinor),
+    onSuccess: () => {
+      toast.success(t('common.successUpdated'));
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiary-allocations', campaignId] });
+      onUpdated();
+    },
+    onError: (err) => {
+      const body = (err as ApiError).body as
+        | { message?: string | { message?: string; neededMinor?: number }; neededMinor?: number }
+        | null;
+      const nested =
+        body?.message && typeof body.message === 'object' ? body.message : null;
+      const neededMinor =
+        nested?.neededMinor ?? (typeof body?.neededMinor === 'number' ? body.neededMinor : undefined);
+      if (neededMinor != null) {
+        toast.error(t('campaigns.needMoreTnd', { amount: formatMoney(neededMinor, currency) }));
+        return;
+      }
+      toast.error((err as Error).message);
+    },
+  });
+
+  const paidMut = useMutation({
+    mutationFn: (splitId: string) => markCampaignBeneficiarySplitPaid(campaignId, splitId),
+    onSuccess: () => {
+      toast.success(t('campaigns.splitMarkedPaid'));
+      setPayConfirm(null);
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiary-allocations', campaignId] });
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiaries', campaignId] });
+      onUpdated();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const cancelPaidMut = useMutation({
+    mutationFn: (splitId: string) => unmarkCampaignBeneficiarySplitPaid(campaignId, splitId),
+    onSuccess: () => {
+      toast.success(t('campaigns.cancelPaidSuccess'));
+      setCancelPayConfirm(null);
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiary-allocations', campaignId] });
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiaries', campaignId] });
+      onUpdated();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  function saveSplitAmount(splitId: string) {
+    const tnd = editAmounts[splitId];
+    if (!tnd || Number(tnd) <= 0) return;
+    updateMut.mutate({ splitId, amountMinor: tndToMinor(Number(tnd)) });
+  }
+
+  return (
+    <div className="rounded border border-border bg-muted/20 p-2">
+      <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => setOpen((v) => !v)}>
+        <Wallet className="me-1 h-3 w-3" />
+        {open ? t('campaigns.hideAllocations') : t('campaigns.beneficiaryAllocations')}
+      </Button>
+      {open && (
+        <div className="mt-2 space-y-3 text-sm">
+          {allocQ.isLoading ? (
+            <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
+          ) : !allocQ.data ? null : (
+            <>
+              <div className="rounded border border-border bg-background px-2 py-1.5 text-xs">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('campaigns.reservedAmount')}</span>
+                  <span className="font-medium tabular-nums text-amber-800 dark:text-amber-200">
+                    {formatMoney(allocQ.data.allocatedMinor, currency)}
+                  </span>
+                </div>
+                <div className="mt-1 flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t('campaigns.unassignedAmountLabel')}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatMoney(allocQ.data.unassignedMinor, currency)}
+                  </span>
+                </div>
+              </div>
+              {!allocQ.data.items.length ? (
+                <p className="text-xs text-muted-foreground">{t('campaigns.noAllocations')}</p>
+              ) : (
+                allocQ.data.items.map((row) => (
+                  <BeneficiaryAllocationBlock
+                    key={row.beneficiaryId}
+                    row={row}
+                    currency={currency}
+                    editAmounts={editAmounts}
+                    setEditAmounts={setEditAmounts}
+                    onSaveSplit={saveSplitAmount}
+                    onRequestMarkPaid={(split) =>
+                      setPayConfirm({
+                        splitId: split.id,
+                        amountMinor: split.amountMinor,
+                        beneficiaryName: row.fullName,
+                      })
+                    }
+                    onRequestCancelPaid={(split) =>
+                      setCancelPayConfirm({
+                        splitId: split.id,
+                        amountMinor: split.amountMinor,
+                        beneficiaryName: row.fullName,
+                      })
+                    }
+                    saving={updateMut.isPending}
+                    paying={paidMut.isPending || cancelPaidMut.isPending}
+                    t={t}
+                  />
+                ))
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!payConfirm}
+        title={t('campaigns.confirmMarkPaidTitle')}
+        description={
+          payConfirm
+            ? t('campaigns.confirmMarkPaidDescription', {
+                name: payConfirm.beneficiaryName,
+                amount: formatMoney(payConfirm.amountMinor, currency),
+              })
+            : undefined
+        }
+        confirmLabel={t('campaigns.markPaid')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={() => payConfirm && paidMut.mutate(payConfirm.splitId)}
+        onCancel={() => setPayConfirm(null)}
+        loading={paidMut.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!cancelPayConfirm}
+        title={t('campaigns.confirmCancelPaidTitle')}
+        description={
+          cancelPayConfirm
+            ? t('campaigns.confirmCancelPaidDescription', {
+                name: cancelPayConfirm.beneficiaryName,
+                amount: formatMoney(cancelPayConfirm.amountMinor, currency),
+              })
+            : undefined
+        }
+        confirmLabel={t('campaigns.cancelPaid')}
+        cancelLabel={t('common.back')}
+        destructive
+        alertTone="destructive"
+        onConfirm={() => cancelPayConfirm && cancelPaidMut.mutate(cancelPayConfirm.splitId)}
+        onCancel={() => setCancelPayConfirm(null)}
+        loading={cancelPaidMut.isPending}
+      />
+    </div>
+  );
+}
+
+function BeneficiaryAllocationBlock({
+  row,
+  currency,
+  editAmounts,
+  setEditAmounts,
+  onSaveSplit,
+  onRequestMarkPaid,
+  onRequestCancelPaid,
+  saving,
+  paying,
+  t,
+}: {
+  row: CampaignBeneficiaryAllocation;
+  currency: string;
+  editAmounts: Record<string, string>;
+  setEditAmounts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onSaveSplit: (splitId: string) => void;
+  onRequestMarkPaid: (split: CampaignBeneficiaryAllocationSplit) => void;
+  onRequestCancelPaid: (split: CampaignBeneficiaryAllocationSplit) => void;
+  saving: boolean;
+  paying: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <div className="rounded border border-border bg-background p-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">
+            {row.fullName}
+            {row.isOrphan ? (
+              <span className="ms-1 text-xs text-amber-700 dark:text-amber-300">
+                · {t('beneficiaries.orphan')}
+              </span>
+            ) : null}
+          </p>
+          <p className="text-xs text-muted-foreground">{row.code}</p>
+        </div>
+        <div className="text-xs text-end">
+          <p>
+            {t('campaigns.allocated')}: {formatMoney(row.allocatedMinor, currency)}
+          </p>
+          <p className="text-emerald-700 dark:text-emerald-300">
+            {t('campaigns.distributed')}: {formatMoney(row.distributedMinor, currency)}
+          </p>
+          <p className="text-muted-foreground">
+            {t('campaigns.pending')}: {formatMoney(row.pendingMinor, currency)}
+          </p>
+        </div>
+      </div>
+      <ul className="mt-2 space-y-1.5 border-t border-border pt-2">
+        {row.splits.map((split) => (
+          <li key={split.id} className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{formatDate(split.receivedAt.slice(0, 10))}</span>
+            {split.paidAt ? (
+              <>
+                <Badge variant="success">{t('campaigns.paid')}</Badge>
+                <span className="tabular-nums">{formatMoney(split.amountMinor, split.currency)}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 px-2"
+                  disabled={paying}
+                  onClick={() => onRequestCancelPaid(split)}
+                >
+                  {t('campaigns.cancelPaid')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <MoneyInput
+                  className="h-9 min-w-[8rem] w-40 text-sm"
+                  value={editAmounts[split.id] ?? String(split.amountMinor / 1000)}
+                  onValueChange={(v) =>
+                    setEditAmounts((prev) => ({ ...prev, [split.id]: String(v) }))
+                  }
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2"
+                  disabled={saving}
+                  onClick={() => onSaveSplit(split.id)}
+                >
+                  {t('common.update')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 px-2"
+                  disabled={paying}
+                  onClick={() => onRequestMarkPaid(split)}
+                >
+                  {t('campaigns.markPaid')}
+                </Button>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CampaignBeneficiariesPanel({
+  campaign,
+  onUpdated,
+}: {
+  campaign: CampaignListEntry;
+  onUpdated: () => void;
+}) {
+  const t = useTranslations();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [quickFirst, setQuickFirst] = useState('');
+  const [quickLast, setQuickLast] = useState('');
+  const [quickOrphan, setQuickOrphan] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const lookupFields = campaign.beneficiaryLookupFields?.length
+    ? campaign.beneficiaryLookupFields
+    : (['name', 'phone', 'cin'] as BeneficiaryLookupField[]);
+
+  const listQ = useQuery({
+    queryKey: ['campaign-beneficiaries', campaign.id],
+    queryFn: () => listCampaignBeneficiaries(campaign.id),
+    enabled: open,
+  });
+
+  const searchQ = useQuery({
+    queryKey: ['campaign-ben-search', campaign.id, debouncedSearch],
+    queryFn: () =>
+      searchBeneficiariesForDonationPick({ q: debouncedSearch, fields: lookupFields }),
+    enabled: open && debouncedSearch.length >= 2,
+  });
+
+  const linkedIds = new Set((listQ.data?.items ?? []).map((b) => b.beneficiaryId));
+
+  const addMut = useMutation({
+    mutationFn: (beneficiaryId: string) => addCampaignBeneficiary(campaign.id, beneficiaryId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiaries', campaign.id] });
+      setSearch('');
+      onUpdated();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (beneficiaryId: string) => removeCampaignBeneficiary(campaign.id, beneficiaryId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiaries', campaign.id] });
+      onUpdated();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const quickMut = useMutation({
+    mutationFn: () =>
+      quickAddCampaignBeneficiary(campaign.id, {
+        firstName: quickFirst.trim(),
+        lastName: quickLast.trim(),
+        isOrphan: quickOrphan,
+      }),
+    onSuccess: () => {
+      toast.success(t('campaigns.beneficiaryAdded'));
+      setQuickFirst('');
+      setQuickLast('');
+      setQuickOrphan(false);
+      qc.invalidateQueries({ queryKey: ['campaign-beneficiaries', campaign.id] });
+      onUpdated();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  function pickExisting(hit: BeneficiaryDonationPickHit) {
+    if (linkedIds.has(hit.id)) {
+      toast.error(t('campaigns.beneficiaryAlreadyLinked'));
+      return;
+    }
+    addMut.mutate(hit.id);
+  }
+
+  return (
+    <div className="rounded border border-border bg-muted/20 p-2">
+      <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => setOpen((v) => !v)}>
+        <Users className="me-1 h-3 w-3" />
+        {open ? t('campaigns.hideBeneficiaries') : t('campaigns.manageBeneficiaries')}
+      </Button>
+      {open && (
+        <div className="mt-2 space-y-3 text-sm">
+          {listQ.isLoading ? (
+            <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
+          ) : listQ.data && listQ.data.items.length > 0 ? (
+            <ul className="divide-y rounded border border-border bg-background">
+              {listQ.data.items.map((b) => (
+                <li
+                  key={b.linkId}
+                  className={`flex items-center justify-between gap-2 px-2 py-1.5 ${
+                    !b.hasReceivedPayment
+                      ? 'bg-amber-50/90 dark:bg-amber-950/35'
+                      : 'bg-emerald-50/50 dark:bg-emerald-950/20'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{b.fullName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {b.code}
+                      {b.isOrphan ? ` · ${t('beneficiaries.orphan')}` : ''}
+                      {!b.hasReceivedPayment ? (
+                        <span className="ms-1 text-amber-800 dark:text-amber-200">
+                          · {t('campaigns.noPaymentYet')}
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2"
+                    disabled={removeMut.isPending}
+                    onClick={() => removeMut.mutate(b.beneficiaryId)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('campaigns.noBeneficiaries')}</p>
+          )}
+
+          <div className="space-y-2 rounded border border-dashed border-border p-2">
+            <Label className="text-xs">{t('campaigns.addExistingBeneficiary')}</Label>
+            <Input
+              placeholder={t('donations.searchBeneficiaryPlaceholder')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {debouncedSearch.length >= 2 ? (
+              <ul className="max-h-32 overflow-y-auto rounded border">
+                {(searchQ.data?.items ?? [])
+                  .filter((hit) => !linkedIds.has(hit.id))
+                  .map((hit) => (
+                    <BeneficiaryDonationPickRow
+                      key={hit.id}
+                      hit={hit}
+                      onPick={() => pickExisting(hit)}
+                    />
+                  ))}
+              </ul>
+            ) : null}
+          </div>
+
+          <form
+            className="space-y-2 rounded border border-dashed border-border p-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!quickFirst.trim() || !quickLast.trim()) return;
+              quickMut.mutate();
+            }}
+          >
+            <Label className="text-xs">{t('campaigns.quickAddBeneficiary')}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                placeholder={t('beneficiaries.firstName')}
+                value={quickFirst}
+                onChange={(e) => setQuickFirst(e.target.value)}
+              />
+              <Input
+                placeholder={t('beneficiaries.lastName')}
+                value={quickLast}
+                onChange={(e) => setQuickLast(e.target.value)}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5"
+                checked={quickOrphan}
+                onChange={(e) => setQuickOrphan(e.target.checked)}
+              />
+              {t('beneficiaries.orphan')}
+            </label>
+            <Button type="submit" size="sm" disabled={quickMut.isPending || !quickFirst.trim() || !quickLast.trim()}>
+              {t('campaigns.quickAddBeneficiaryBtn')}
+            </Button>
+          </form>
+        </div>
+      )}
+    </div>
   );
 }
 
